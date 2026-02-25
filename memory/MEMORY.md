@@ -6,23 +6,9 @@
 
 ## User Environment
 
-- System: Ubuntu Linux, Zsh
-- Conda path: `$HOME/anaconda3`
-- Main workspace: projects under `~/Desktop/`
-- MCP installed: Context7, GitHub, Playwright (user scope)
-- Permission mode: bypass permissions enabled
-
-## GitHub
-
-- Account: Mizoreww, gh CLI logged in
-- Claude config repo: `Mizoreww/claude-code-config`, branches `main` (English) and `zh-CN` (Chinese)
-- Git push: `GIT_SSH_COMMAND="ssh -o ConnectTimeout=10 -o ServerAliveInterval=5" git push`
-
-## User Preferences
-
-- Communicate in Chinese
-- Give code directly, minimize questions
-- Don't repeatedly suggest the same root cause
+<!-- Fill in your own environment details -->
+- System: (your OS and shell)
+- Main workspace: (your workspace path)
 
 ## Memory Structure
 
