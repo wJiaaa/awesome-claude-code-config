@@ -1,26 +1,4 @@
 {
-  "context7": {
-    "type": "stdio",
-    "command": "npx",
-    "args": ["-y", "@upstash/context7-mcp@latest"],
-    "env": {}
-  },
-  "github": {
-    "type": "http",
-    "url": "https://api.githubcopilot.com/mcp/"
-  },
-  "playwright": {
-    "type": "stdio",
-    "command": "npx",
-    "args": ["-y", "@playwright/mcp@latest"],
-    "env": {}
-  },
-  "feishu-mcp": {
-    "type": "stdio",
-    "command": "npx",
-    "args": ["-y", "feishu-mcp@latest", "--feishu-app-id=YOUR_APP_ID", "--feishu-app-secret=YOUR_APP_SECRET", "--feishu-auth-type=user"],
-    "env": {}
-  },
   "lark-mcp": {
     "type": "stdio",
     "command": "npx",

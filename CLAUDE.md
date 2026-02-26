@@ -2,14 +2,10 @@
 
 ## Memory System (Highest Priority)
 
-### Session Startup
-
-**First tool call MUST be `Read ~/.claude/memory/lessons.md`** — no other actions before this. After reading, write relevant lessons to the project-level `MEMORY.md`.
-
 ### Architecture
 
 - `~/.claude/CLAUDE.md`: Global instructions, auto-loaded
-- `~/.claude/memory/lessons.md`: Correction log, **must be read manually**
+- `~/.claude/memory/lessons.md`: Correction log, **auto-injected via SessionStart hook**
 - Project `MEMORY.md`: `~/.claude/projects/<path>/memory/MEMORY.md`, auto-loaded
 
 ### Self-Correction
