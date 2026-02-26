@@ -11,7 +11,7 @@ Production-ready configuration for [Claude Code](https://claude.com/claude-code)
 ├── lessons.md             # Self-correction log template (auto-loaded via hook)
 ├── rules/                 # Multi-language coding standards (common + python/typescript/golang)
 ├── mcp/                   # MCP server config (Lark-MCP only)
-├── plugins/               # Plugin installation guide (20 plugins, 5 marketplaces)
+├── plugins/               # Plugin installation guide (19 plugins, 5 marketplaces)
 ├── skills/                # Custom skills (paper-reading, frontend-slides)
 └── install.sh             # One-command installer
 ```
@@ -19,7 +19,7 @@ Production-ready configuration for [Claude Code](https://claude.com/claude-code)
 ## Quick Start
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/claude-code-config.git
+git clone https://github.com/Mizoreww/claude-code-config.git
 cd claude-code-config
 ./install.sh              # Install everything
 ./install.sh --dry-run    # Preview changes
@@ -37,7 +37,7 @@ Selective install:
 
 ### Self-Improvement Loop
 
-1. User corrects Claude → auto-saved to `~/.claude/memory/lessons.md`
+1. User corrects Claude → auto-saved to `~/.claude/lessons.md`
 2. Next session → `SessionStart` hook auto-injects lessons into context
 3. Pattern confirmed → rule promoted to `CLAUDE.md`
 
@@ -61,9 +61,35 @@ golang/       → gofmt, table-driven tests, gosec
 
 ### Plugin-First Approach
 
-20 plugins covering dev workflows, document creation, and ML/AI research. Context7, GitHub, Playwright have migrated from MCP to official plugins. Only Lark-MCP remains as MCP.
+19 plugins across 5 marketplaces. Context7, GitHub, Playwright migrated from MCP to official plugins. Only Lark-MCP remains as MCP.
 
-See [`plugins/README.md`](plugins/README.md) for details.
+| Plugin | Marketplace | What It Does |
+|--------|-------------|--------------|
+| **superpowers** | claude-plugins-official | Brainstorming, debugging, code review, git worktrees, plan writing |
+| **everything-claude-code** | everything-claude-code | TDD, security review, database patterns, Go/Python/Spring Boot |
+| **document-skills** | anthropic-agent-skills | PDF, DOCX, PPTX, XLSX creation and manipulation |
+| **example-skills** | anthropic-agent-skills | Frontend design, MCP builder, canvas design, algorithmic art |
+| **claude-mem** | thedotmack | Persistent memory with smart search, timeline, AST-aware code search |
+| **frontend-design** | claude-plugins-official | Production-grade frontend interfaces |
+| **context7** | claude-plugins-official | Up-to-date library documentation lookup |
+| **code-review** | claude-plugins-official | Confidence-based code review |
+| **github** | claude-plugins-official | GitHub integration (issues, PRs, workflows) |
+| **playwright** | claude-plugins-official | Browser automation, E2E testing, screenshots |
+| **feature-dev** | claude-plugins-official | Guided feature development |
+| **code-simplifier** | claude-plugins-official | Code simplification and refactoring |
+| **ralph-loop** | claude-plugins-official | Session-aware AI assistant REPL |
+| **commit-commands** | claude-plugins-official | Git commit, clean branches, commit-push-PR |
+| **fine-tuning** | ai-research-skills | Axolotl, LLaMA-Factory, PEFT, Unsloth |
+| **post-training** | ai-research-skills | GRPO, RLHF, DPO, SimPO |
+| **inference-serving** | ai-research-skills | vLLM, SGLang, TensorRT-LLM, llama.cpp |
+| **distributed-training** | ai-research-skills | DeepSpeed, FSDP, Megatron-Core, Ray Train |
+| **optimization** | ai-research-skills | AWQ, GPTQ, GGUF, Flash Attention, bitsandbytes |
+
+See [`plugins/README.md`](plugins/README.md) for installation details.
+
+## Security Note
+
+`settings.json` ships with `bypassPermissions` mode for power users. If you prefer safer defaults, change `defaultMode` to `"default"` and set `skipDangerousModePermissionPrompt` to `false`.
 
 ## Customization
 

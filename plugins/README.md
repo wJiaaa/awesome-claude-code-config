@@ -1,6 +1,6 @@
 # Plugins
 
-20 plugins across 5 marketplaces. Context7, GitHub, Playwright migrated from MCP to official plugins.
+19 plugins across 5 marketplaces. Context7, GitHub, Playwright migrated from MCP to official plugins.
 
 ## Plugin List
 
