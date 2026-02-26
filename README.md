@@ -1,3 +1,5 @@
+**English** | [中文](https://github.com/Mizoreww/claude-code-config/blob/zh-CN/README.md)
+
 # Claude Code Configuration
 
 Production-ready configuration for [Claude Code](https://claude.com/claude-code): global instructions, multi-language coding rules, plugins, MCP integration, and a self-improvement loop.
