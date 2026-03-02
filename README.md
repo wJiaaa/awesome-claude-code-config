@@ -1,3 +1,5 @@
+<!-- This is the source of truth. README.zh-CN.md is the Chinese translation. Keep both in sync. -->
+
 **Main English** | [Main 中文](./README.zh-CN.md) | [Codex English](https://github.com/Mizoreww/claude-code-config/blob/codex/README.md) | [Codex 中文](https://github.com/Mizoreww/claude-code-config/blob/codex/README.zh-CN.md)
 
 # Claude Code Configuration
@@ -15,10 +17,25 @@ Production-ready configuration for [Claude Code](https://claude.com/claude-code)
 ├── mcp/                   # MCP server config (Lark-MCP only)
 ├── plugins/               # Plugin installation guide (19 plugins, 5 marketplaces)
 ├── skills/                # Custom skills (paper-reading)
+├── VERSION                # Semantic version number
 └── install.sh             # One-command installer
 ```
 
 ## Quick Start
+
+**One-line remote install** (no clone needed):
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/Mizoreww/claude-code-config/main/install.sh)
+```
+
+Or install a specific version:
+
+```bash
+VERSION=v1.0.0 bash <(curl -fsSL https://raw.githubusercontent.com/Mizoreww/claude-code-config/main/install.sh)
+```
+
+**Local install** (from clone):
 
 ```bash
 git clone https://github.com/Mizoreww/claude-code-config.git
@@ -27,12 +44,41 @@ cd claude-code-config
 ./install.sh --dry-run    # Preview changes
 ```
 
-Selective install:
+### Default Installation (`--all`)
+
+| Component | Included | Flag to install separately |
+|-----------|----------|---------------------------|
+| CLAUDE.md | Yes | `--claude-md` |
+| settings.json | Yes (smart merge) | `--settings` |
+| Rules (all languages) | Yes | `--rules [LANG...]` |
+| Skills | Yes | `--skills` |
+| lessons.md | Yes (skip if exists) | `--lessons` |
+| Plugins (core, 14) | Yes | `--plugins` |
+| Plugins (ai-research, 5) | No | `--plugins ai-research` |
+| MCP (Lark) | No | `--mcp` |
+
+### Selective Install
 
 ```bash
 ./install.sh --rules python typescript  # Rules only
-./install.sh --plugins                  # Plugins only
-./install.sh --mcp                      # MCP only
+./install.sh --plugins                  # Core plugins only (14)
+./install.sh --plugins all              # All plugins (19)
+./install.sh --plugins ai-research      # AI research plugins only (5)
+./install.sh --mcp                      # MCP only (Lark)
+```
+
+### Uninstall
+
+```bash
+./install.sh --uninstall                # Remove everything
+./install.sh --uninstall --rules        # Remove rules only
+./install.sh --uninstall --force        # Skip confirmation (CI/non-interactive)
+```
+
+### Version Info
+
+```bash
+./install.sh --version                  # Show source / installed / remote versions
 ```
 
 ## Key Features
@@ -51,6 +97,17 @@ Selective install:
 
 Replaces the previous approach of requiring manual `Read lessons.md` in CLAUDE.md (more reliable).
 
+### Smart Settings Merge
+
+When `settings.json` already exists, the installer performs a smart merge (requires `jq`):
+
+- **env**: Incoming values as defaults, existing values take priority
+- **permissions.allow**: Union of both arrays (deduped)
+- **enabledPlugins**: Merged, existing keys take priority
+- **hooks.SessionStart**: Deduplicated by `matcher` field
+
+Without `jq`, a manual merge warning is shown instead.
+
 ### Layered Rules
 
 ```
@@ -63,7 +120,9 @@ golang/       → gofmt, table-driven tests, gosec
 
 ### Plugin-First Approach
 
-19 plugins across 5 marketplaces. Context7, GitHub, Playwright migrated from MCP to official plugins. Only Lark-MCP remains as MCP.
+19 plugins across 5 marketplaces, organized into two groups:
+
+**Core plugins** (14) — installed by default:
 
 | Plugin | Marketplace | What It Does |
 |--------|-------------|--------------|
@@ -81,6 +140,11 @@ golang/       → gofmt, table-driven tests, gosec
 | **code-simplifier** | claude-plugins-official | Code simplification and refactoring |
 | **ralph-loop** | claude-plugins-official | Session-aware AI assistant REPL |
 | **commit-commands** | claude-plugins-official | Git commit, clean branches, commit-push-PR |
+
+**AI Research plugins** (5) — install with `--plugins ai-research` or `--plugins all`:
+
+| Plugin | Marketplace | What It Does |
+|--------|-------------|--------------|
 | [**fine-tuning**](https://github.com/Orchestra-Research/AI-Research-SKILLs) | ai-research-skills | Axolotl, LLaMA-Factory, PEFT, Unsloth |
 | [**post-training**](https://github.com/Orchestra-Research/AI-Research-SKILLs) | ai-research-skills | GRPO, RLHF, DPO, SimPO |
 | [**inference-serving**](https://github.com/Orchestra-Research/AI-Research-SKILLs) | ai-research-skills | vLLM, SGLang, TensorRT-LLM, llama.cpp |

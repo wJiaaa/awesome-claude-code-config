@@ -1,3 +1,5 @@
+<!-- 翻译同步自 README.md（source of truth）。更新英文版后请同步此文件。 -->
+
 [Main English](./README.md) | **Main 中文** | [Codex English](https://github.com/Mizoreww/claude-code-config/blob/codex/README.md) | [Codex 中文](https://github.com/Mizoreww/claude-code-config/blob/codex/README.zh-CN.md)
 
 # Claude Code 配置
@@ -15,10 +17,25 @@
 ├── mcp/                   # MCP 服务器配置（仅 Lark-MCP）
 ├── plugins/               # 插件安装指南（19 个插件，5 个市场）
 ├── skills/                # 自定义技能（paper-reading）
+├── VERSION                # 语义化版本号
 └── install.sh             # 一键安装脚本
 ```
 
 ## 快速开始
+
+**一行远程安装**（无需 clone）：
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/Mizoreww/claude-code-config/main/install.sh)
+```
+
+安装指定版本：
+
+```bash
+VERSION=v1.0.0 bash <(curl -fsSL https://raw.githubusercontent.com/Mizoreww/claude-code-config/main/install.sh)
+```
+
+**本地安装**（从 clone）：
 
 ```bash
 git clone https://github.com/Mizoreww/claude-code-config.git
@@ -27,12 +44,41 @@ cd claude-code-config
 ./install.sh --dry-run    # 预览变更
 ```
 
-选择性安装：
+### 默认安装（`--all`）
+
+| 组件 | 是否包含 | 单独安装 |
+|------|----------|----------|
+| CLAUDE.md | 是 | `--claude-md` |
+| settings.json | 是（智能合并） | `--settings` |
+| Rules（所有语言） | 是 | `--rules [LANG...]` |
+| Skills | 是 | `--skills` |
+| lessons.md | 是（已存在则跳过） | `--lessons` |
+| Plugins（core，14 个） | 是 | `--plugins` |
+| Plugins（ai-research，5 个） | 否 | `--plugins ai-research` |
+| MCP（Lark） | 否 | `--mcp` |
+
+### 选择性安装
 
 ```bash
 ./install.sh --rules python typescript  # 仅规则
-./install.sh --plugins                  # 仅插件
-./install.sh --mcp                      # 仅 MCP
+./install.sh --plugins                  # 仅核心插件（14 个）
+./install.sh --plugins all              # 全部插件（19 个）
+./install.sh --plugins ai-research      # 仅 AI 研究类插件（5 个）
+./install.sh --mcp                      # 仅 MCP（Lark）
+```
+
+### 卸载
+
+```bash
+./install.sh --uninstall                # 删除全部
+./install.sh --uninstall --rules        # 仅删除规则
+./install.sh --uninstall --force        # 跳过确认（CI/非交互环境）
+```
+
+### 版本信息
+
+```bash
+./install.sh --version                  # 显示源版本 / 已安装版本 / 远程最新版本
 ```
 
 ## 核心特性
@@ -51,6 +97,17 @@ cd claude-code-config
 
 取代了以前在 CLAUDE.md 中要求手动 Read lessons.md 的方式（更可靠）。
 
+### settings.json 智能合并
+
+当 `settings.json` 已存在时，安装器会执行智能合并（需要 `jq`）：
+
+- **env**：新值作为默认值，已有值优先
+- **permissions.allow**：两个数组取并集（去重）
+- **enabledPlugins**：合并，已有键优先
+- **hooks.SessionStart**：按 `matcher` 字段去重
+
+没有 `jq` 时，会显示手动合并提示。
+
 ### 分层规则
 
 ```
@@ -63,7 +120,9 @@ golang/       → gofmt、表驱动测试、gosec
 
 ### 插件优先
 
-19 个插件，5 个市场。Context7、GitHub、Playwright 已从 MCP 迁移到官方插件。MCP 仅保留 Lark-MCP。
+19 个插件，5 个市场，分为两组：
+
+**核心插件**（14 个）— 默认安装：
 
 | 插件 | 市场 | 功能 |
 |------|------|------|
@@ -81,6 +140,11 @@ golang/       → gofmt、表驱动测试、gosec
 | **code-simplifier** | claude-plugins-official | 代码简化和重构 |
 | **ralph-loop** | claude-plugins-official | 会话感知 AI 助手 REPL |
 | **commit-commands** | claude-plugins-official | Git 提交、清理分支、提交-推送-PR |
+
+**AI 研究插件**（5 个）— 用 `--plugins ai-research` 或 `--plugins all` 安装：
+
+| 插件 | 市场 | 功能 |
+|------|------|------|
 | [**fine-tuning**](https://github.com/Orchestra-Research/AI-Research-SKILLs) | ai-research-skills | Axolotl、LLaMA-Factory、PEFT、Unsloth |
 | [**post-training**](https://github.com/Orchestra-Research/AI-Research-SKILLs) | ai-research-skills | GRPO、RLHF、DPO、SimPO |
 | [**inference-serving**](https://github.com/Orchestra-Research/AI-Research-SKILLs) | ai-research-skills | vLLM、SGLang、TensorRT-LLM、llama.cpp |
