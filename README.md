@@ -159,6 +159,10 @@ golang/       → gofmt, table-driven tests, gosec
 
 See [`plugins/README.md`](plugins/README.md) for installation details.
 
+### Version Changelog Policy
+
+CLAUDE.md includes a **Version Changelog** rule: when making version-level changes (new features, major refactors, breaking changes), Claude proactively maintains a `CHANGELOG.md` in the project root with structured entries covering features, design rationale, and caveats. This keeps design decisions traceable alongside the code.
+
 ### Custom Skills
 
 | Skill | Description |
