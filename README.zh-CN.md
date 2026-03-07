@@ -32,19 +32,12 @@
 bash <(curl -fsSL https://raw.githubusercontent.com/Mizoreww/awesome-claude-code-config/main/install.sh)
 ```
 
-安装指定版本：
-
-```bash
-VERSION=v1.0.0 bash <(curl -fsSL https://raw.githubusercontent.com/Mizoreww/awesome-claude-code-config/main/install.sh)
-```
-
 **本地安装**（从 clone）：
 
 ```bash
 git clone https://github.com/Mizoreww/awesome-claude-code-config.git
 cd awesome-claude-code-config
 ./install.sh              # 安装全部
-./install.sh --dry-run    # 预览变更
 ```
 
 ### 默认安装（`--all`）

@@ -32,19 +32,12 @@ Production-ready configuration for [Claude Code](https://claude.com/claude-code)
 bash <(curl -fsSL https://raw.githubusercontent.com/Mizoreww/awesome-claude-code-config/main/install.sh)
 ```
 
-Or install a specific version:
-
-```bash
-VERSION=v1.0.0 bash <(curl -fsSL https://raw.githubusercontent.com/Mizoreww/awesome-claude-code-config/main/install.sh)
-```
-
 **Local install** (from clone):
 
 ```bash
 git clone https://github.com/Mizoreww/awesome-claude-code-config.git
 cd awesome-claude-code-config
 ./install.sh              # Install everything
-./install.sh --dry-run    # Preview changes
 ```
 
 ### Default Installation (`--all`)
