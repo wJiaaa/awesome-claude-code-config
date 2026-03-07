@@ -1,12 +1,12 @@
 <!-- This is the source of truth. README.zh-CN.md is the Chinese translation. Keep both in sync. -->
 
-**Main English** | [Main 中文](./README.zh-CN.md) | [Codex English](https://github.com/Mizoreww/awesome-claude-code-config/blob/codex/README.md) | [Codex 中文](https://github.com/Mizoreww/awesome-claude-code-config/blob/codex/README.zh-CN.md)
+**English** | [中文](./README.zh-CN.md)
 
 # Awesome Claude Code Configuration
 
 ![Statusline](assets/statusline.png)
 
-Production-ready configuration for [Claude Code](https://claude.com/claude-code) — one-command install of global instructions, multi-language coding rules (Python / TypeScript / Go), 19 curated plugins, custom skills, custom status bar, MCP integration, cross-model code review (Claude + Codex), and a self-improvement loop that remembers corrections across sessions. Also ships a [Codex CLI branch](https://github.com/Mizoreww/awesome-claude-code-config/tree/codex) with parallel support for OpenAI's coding agent.
+Production-ready configuration for [Claude Code](https://claude.com/claude-code) — one-command install of global instructions, multi-language coding rules (Python / TypeScript / Go), 19 curated plugins, custom skills (paper-reading, [adversarial-review](https://github.com/poteto/noodle/tree/main/.agents/skills/adversarial-review)), custom status bar, MCP integration, and a self-improvement loop that remembers corrections across sessions.
 
 ## Directory Structure
 
@@ -17,9 +17,9 @@ Production-ready configuration for [Claude Code](https://claude.com/claude-code)
 ├── lessons.md             # Self-correction log template (auto-loaded via hook)
 ├── rules/                 # Multi-language coding standards (common + python/typescript/golang)
 ├── hooks/                 # Statusline with gradient progress bars (context + 5h usage)
-├── mcp/                   # MCP server config (Lark-MCP, Codex CLI)
+├── mcp/                   # MCP server config (Lark-MCP)
 ├── plugins/               # Plugin installation guide (19 plugins, 5 marketplaces)
-├── skills/                # Custom skills (paper-reading)
+├── skills/                # Custom skills (paper-reading, adversarial-review)
 ├── VERSION                # Semantic version number
 └── install.sh             # One-command installer
 ```
@@ -58,7 +58,7 @@ cd awesome-claude-code-config
 | lessons.md | Yes (skip if exists) | `--lessons` |
 | Plugins (core, 14) | Yes | `--plugins` |
 | Plugins (ai-research, 5) | No | `--plugins ai-research` |
-| MCP (Lark, Codex CLI) | No | `--mcp` |
+| MCP (Lark) | No | `--mcp` |
 
 ### Selective Install
 
@@ -67,7 +67,7 @@ cd awesome-claude-code-config
 ./install.sh --plugins                  # Core plugins only (14)
 ./install.sh --plugins all              # All plugins (19)
 ./install.sh --plugins ai-research      # AI research plugins only (5)
-./install.sh --mcp                      # MCP (Lark, Codex CLI)
+./install.sh --mcp                      # MCP (Lark)
 ```
 
 ### Uninstall
@@ -130,12 +130,6 @@ When `settings.json` already exists, the installer performs a smart merge (requi
 
 Without `jq`, a manual merge warning is shown instead.
 
-### Code Review via Codex CLI
-
-CLAUDE.md includes a **Code Review** rule: whenever a code review is needed — whether requested by the user or triggered by a skill (e.g., `code-reviewer`, `simplify`) — Claude must invoke the `mcp__codex-cli__review` tool (powered by [codex-mcp-server](https://github.com/tuannvm/codex-mcp-server)) instead of providing text-only feedback. This enables cross-model review: Claude orchestrates while Codex performs the actual diff analysis.
-
-Install the Codex CLI MCP server with `--mcp` to enable this feature.
-
 ### Layered Rules
 
 ```
@@ -190,8 +184,15 @@ CLAUDE.md includes a **Version Changelog** rule: when making version-level chang
 | Skill | Description |
 |-------|-------------|
 | **paper-reading** | Structured research paper summarization with auto-screenshot of key figures. Uses ar5iv HTML for arXiv papers, Playwright for figure capture, outputs standardized markdown (problem, method, experiments, insights). |
+| **[adversarial-review](https://github.com/poteto/noodle/tree/main/.agents/skills/adversarial-review)** | Cross-model adversarial code review. Spawns reviewers on the opposite AI model (Claude ↔ Codex) with distinct critical lenses (Skeptic, Architect, Minimalist), then synthesizes a structured verdict (PASS/CONTESTED/REJECT). |
 
 Place custom skills in `skills/<name>/SKILL.md`.
+
+### Adversarial Code Review via Codex CLI
+
+CLAUDE.md includes a **Code Review** rule: whenever a code review is needed — whether requested by the user or triggered by a skill (e.g., `code-reviewer`, `simplify`) — Claude invokes the `adversarial-review` skill (from [poteto/noodle](https://github.com/poteto/noodle/tree/main/.agents/skills/adversarial-review)). This skill spawns reviewers on the **opposite AI model's CLI** (`codex exec` for Claude users, `claude -p` for Codex users), producing cross-model adversarial analysis with structured verdicts (PASS / CONTESTED / REJECT).
+
+Requires Codex CLI installed and `OPENAI_API_KEY` set in your environment.
 
 ## Security Note
 

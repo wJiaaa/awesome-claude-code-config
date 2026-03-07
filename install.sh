@@ -131,7 +131,7 @@ Options:
     --skills            Install custom skills only
     --lessons           Install lessons.md template only
     --hooks             Install hooks (statusline) only
-    --mcp               Install MCP servers (Lark, Codex CLI) — not included in --all
+    --mcp               Install MCP servers (Lark) — not included in --all
     --plugins [GROUP]   Install plugins (default: core)
                         Groups: core, ai-research, all
     --claude-md         Install CLAUDE.md only
@@ -549,15 +549,6 @@ install_mcp() {
         warn "Replace YOUR_APP_ID and YOUR_APP_SECRET with your Feishu credentials"
     fi
 
-    # Codex CLI MCP
-    if $DRY_RUN; then
-        info "Would add MCP server: codex-cli (stdio)"
-    else
-        claude mcp add --scope user --transport stdio codex-cli \
-            -- npx -y codex-mcp-server 2>/dev/null && \
-            ok "MCP server added: codex-cli" || \
-            warn "MCP server codex-cli may already exist"
-    fi
 }
 
 install_plugins() {
@@ -721,9 +712,6 @@ uninstall() {
                     claude mcp remove lark-mcp 2>/dev/null && \
                         ok "Removed MCP server: lark-mcp" || \
                         warn "Could not remove lark-mcp"
-                    claude mcp remove codex-cli 2>/dev/null && \
-                        ok "Removed MCP server: codex-cli" || \
-                        warn "Could not remove codex-cli"
                 else
                     warn "Claude CLI not found — cannot remove MCP servers"
                 fi

@@ -73,4 +73,4 @@ When making version-level changes to a project (new features, major refactors, a
 
 ## Code Review
 
-Whenever a code review is needed — whether explicitly requested by the user or triggered by a skill (e.g., `code-reviewer`, `simplify`) — always invoke the `mcp__codex-cli__review` tool to perform it. Never substitute the actual review call with a text-only description.
+Whenever a code review is needed — whether explicitly requested by the user or triggered by a skill (e.g., `code-reviewer`, `simplify`) — always invoke the `adversarial-review` skill to perform it. Never substitute the actual review call with a text-only description.
