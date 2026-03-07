@@ -1,6 +1,6 @@
 <!-- 翻译同步自 README.md（source of truth）。更新英文版后请同步此文件。 -->
 
-[English](./README.md) | **中文**
+[English](./README.md) | **中文** | [Codex 分支](https://github.com/Mizoreww/awesome-claude-code-config/tree/codex)
 
 # Awesome Claude Code 配置
 
