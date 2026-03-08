@@ -21,10 +21,13 @@ Production-ready configuration for [Claude Code](https://claude.com/claude-code)
 ├── plugins/               # Plugin installation guide (19 plugins, 5 marketplaces)
 ├── skills/                # Custom skills (paper-reading, adversarial-review)
 ├── VERSION                # Semantic version number
-└── install.sh             # One-command installer
+├── install.sh             # One-command installer (macOS / Linux)
+└── install.ps1            # One-command installer (Windows PowerShell)
 ```
 
 ## Quick Start
+
+### macOS / Linux
 
 **One-line remote install** (no clone needed):
 
@@ -38,6 +41,28 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Mizoreww/awesome-claude-code
 git clone https://github.com/Mizoreww/awesome-claude-code-config.git
 cd awesome-claude-code-config
 ./install.sh              # Install everything
+```
+
+### Windows
+
+**One-line remote install** (PowerShell, no clone needed):
+
+```powershell
+irm https://raw.githubusercontent.com/Mizoreww/awesome-claude-code-config/main/install.ps1 | iex
+```
+
+**From CMD**:
+
+```cmd
+powershell -c "irm https://raw.githubusercontent.com/Mizoreww/awesome-claude-code-config/main/install.ps1 | iex"
+```
+
+**Local install** (from clone):
+
+```powershell
+git clone https://github.com/Mizoreww/awesome-claude-code-config.git
+cd awesome-claude-code-config
+.\install.ps1             # Install everything
 ```
 
 ### Default Installation (`--all`)
@@ -56,6 +81,7 @@ cd awesome-claude-code-config
 ### Selective Install
 
 ```bash
+# Bash (macOS / Linux)
 ./install.sh --rules python typescript  # Rules only
 ./install.sh --plugins                  # Core plugins only (14)
 ./install.sh --plugins all              # All plugins (19)
@@ -63,18 +89,39 @@ cd awesome-claude-code-config
 ./install.sh --mcp                      # MCP (Lark)
 ```
 
+```powershell
+# PowerShell (Windows)
+.\install.ps1 -Rules python,typescript         # Rules only
+.\install.ps1 -Plugins                         # Core plugins only (14)
+.\install.ps1 -Plugins -PluginGroup all        # All plugins (19)
+.\install.ps1 -Plugins -PluginGroup ai-research # AI research plugins only (5)
+.\install.ps1 -Mcp                             # MCP (Lark)
+```
+
 ### Uninstall
 
 ```bash
+# Bash (macOS / Linux)
 ./install.sh --uninstall                # Remove everything
 ./install.sh --uninstall --rules        # Remove rules only
 ./install.sh --uninstall --force        # Skip confirmation (CI/non-interactive)
+```
+
+```powershell
+# PowerShell (Windows)
+.\install.ps1 -Uninstall                            # Remove everything
+.\install.ps1 -Uninstall -UninstallComponents rules  # Remove rules only
+.\install.ps1 -Uninstall -Force                      # Skip confirmation
 ```
 
 ### Version Info
 
 ```bash
 ./install.sh --version                  # Show source / installed / remote versions
+```
+
+```powershell
+.\install.ps1 -Version                  # Show source / installed / remote versions
 ```
 
 ## Key Features
@@ -113,7 +160,7 @@ Configured via `statusLine` in `settings.json`:
 
 ### Smart Settings Merge
 
-When `settings.json` already exists, the installer performs a smart merge (requires `jq`):
+When `settings.json` already exists, the installer performs a smart merge (Bash version requires `jq`; PowerShell version uses built-in JSON support):
 
 - **env**: Incoming values as defaults, existing values take priority
 - **permissions.allow**: Union of both arrays (deduped)

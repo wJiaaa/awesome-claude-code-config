@@ -23,7 +23,7 @@
 
 - Extended thinking: ultrathink
 - Language: respond in the user's preferred language; code comments may use English; keep technical terms in English
-- Shell: Zsh (`~/.zshrc`)
+- Shell: Zsh (`~/.zshrc`) on macOS/Linux; Bash (Git Bash) on Windows
 
 ## Conda Environment
 

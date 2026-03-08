@@ -21,10 +21,13 @@
 ├── plugins/               # 插件安装指南（19 个插件，5 个市场）
 ├── skills/                # 自定义技能（paper-reading、adversarial-review）
 ├── VERSION                # 语义化版本号
-└── install.sh             # 一键安装脚本
+├── install.sh             # 一键安装脚本（macOS / Linux）
+└── install.ps1            # 一键安装脚本（Windows PowerShell）
 ```
 
 ## 快速开始
+
+### macOS / Linux
 
 **一行远程安装**（无需 clone）：
 
@@ -38,6 +41,28 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Mizoreww/awesome-claude-code
 git clone https://github.com/Mizoreww/awesome-claude-code-config.git
 cd awesome-claude-code-config
 ./install.sh              # 安装全部
+```
+
+### Windows
+
+**一行远程安装**（PowerShell，无需 clone）：
+
+```powershell
+irm https://raw.githubusercontent.com/Mizoreww/awesome-claude-code-config/main/install.ps1 | iex
+```
+
+**CMD 环境**：
+
+```cmd
+powershell -c "irm https://raw.githubusercontent.com/Mizoreww/awesome-claude-code-config/main/install.ps1 | iex"
+```
+
+**本地安装**（从 clone）：
+
+```powershell
+git clone https://github.com/Mizoreww/awesome-claude-code-config.git
+cd awesome-claude-code-config
+.\install.ps1             # 安装全部
 ```
 
 ### 默认安装（`--all`）
@@ -56,6 +81,7 @@ cd awesome-claude-code-config
 ### 选择性安装
 
 ```bash
+# Bash（macOS / Linux）
 ./install.sh --rules python typescript  # 仅规则
 ./install.sh --plugins                  # 仅核心插件（14 个）
 ./install.sh --plugins all              # 全部插件（19 个）
@@ -63,18 +89,39 @@ cd awesome-claude-code-config
 ./install.sh --mcp                      # MCP（Lark）
 ```
 
+```powershell
+# PowerShell（Windows）
+.\install.ps1 -Rules python,typescript         # 仅规则
+.\install.ps1 -Plugins                         # 仅核心插件（14 个）
+.\install.ps1 -Plugins -PluginGroup all        # 全部插件（19 个）
+.\install.ps1 -Plugins -PluginGroup ai-research # 仅 AI 研究类插件（5 个）
+.\install.ps1 -Mcp                             # MCP（Lark）
+```
+
 ### 卸载
 
 ```bash
+# Bash（macOS / Linux）
 ./install.sh --uninstall                # 删除全部
 ./install.sh --uninstall --rules        # 仅删除规则
 ./install.sh --uninstall --force        # 跳过确认（CI/非交互环境）
+```
+
+```powershell
+# PowerShell（Windows）
+.\install.ps1 -Uninstall                            # 删除全部
+.\install.ps1 -Uninstall -UninstallComponents rules  # 仅删除规则
+.\install.ps1 -Uninstall -Force                      # 跳过确认
 ```
 
 ### 版本信息
 
 ```bash
 ./install.sh --version                  # 显示源版本 / 已安装版本 / 远程最新版本
+```
+
+```powershell
+.\install.ps1 -Version                  # 显示源版本 / 已安装版本 / 远程最新版本
 ```
 
 ## 核心特性
@@ -113,7 +160,7 @@ cd awesome-claude-code-config
 
 ### settings.json 智能合并
 
-当 `settings.json` 已存在时，安装器会执行智能合并（需要 `jq`）：
+当 `settings.json` 已存在时，安装器会执行智能合并（Bash 版需要 `jq`，PowerShell 版使用内置 JSON 支持）：
 
 - **env**：新值作为默认值，已有值优先
 - **permissions.allow**：两个数组取并集（去重）

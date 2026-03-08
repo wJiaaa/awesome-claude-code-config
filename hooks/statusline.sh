@@ -2,6 +2,23 @@
 # Claude Code status line — gradient progress bars
 # Shows: model, dir, git branch, context window, 5h usage (from API)
 
+# Cross-platform home directory (Windows $HOME may be wrong)
+_HOME="${USERPROFILE:-$HOME}"
+
+# Ensure jq is available (check ~/.claude/bin/ for Windows installs)
+if ! command -v jq &>/dev/null; then
+    for _p in "$_HOME/.claude/bin/jq.exe" "$_HOME/.claude/bin/jq"; do
+        if [ -x "$_p" ]; then
+            export PATH="$(dirname "$_p"):$PATH"
+            break
+        fi
+    done
+fi
+if ! command -v jq &>/dev/null; then
+    printf "\xf0\x9f\xa7\xa0 Claude (jq not found - run install.ps1 or install jq)"
+    exit 0
+fi
+
 input=$(cat)
 
 # --- Extract fields ---
@@ -22,8 +39,9 @@ fi
 # --- 5-hour usage from API (non-blocking, async refresh) ---
 # Strategy: statusline ONLY reads from cache (never blocks on network).
 # If cache is stale, a background process refreshes it for next render.
-USAGE_CACHE="/tmp/claude-usage-cache.json"
-USAGE_LOCK="/tmp/claude-usage-fetch.lock"
+_TMPDIR="${TMPDIR:-${TMP:-/tmp}}"
+USAGE_CACHE="$_TMPDIR/claude-usage-cache.json"
+USAGE_LOCK="$_TMPDIR/claude-usage-fetch.lock"
 CACHE_TTL=60
 CACHE_MAX_AGE=600  # 10min — don't display data older than this
 usage_5h=""
@@ -46,12 +64,27 @@ bg_fetch_usage() {
     kc_json=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null)
     # 2) Linux libsecret (GNOME Keyring / KWallet)
     [ -z "$kc_json" ] && kc_json=$(secret-tool lookup service "Claude Code-credentials" 2>/dev/null)
+    # 3) Windows Credential Manager (Git Bash / MSYS2)
+    if [ -z "$kc_json" ] && command -v powershell.exe &>/dev/null; then
+        kc_json=$(powershell.exe -NoProfile -NoLogo -Command '
+            try {
+                $cred = Get-StoredCredential -Target "Claude Code-credentials" -ErrorAction Stop
+                if ($cred) { [System.Net.NetworkCredential]::new("", $cred.Password).Password }
+            } catch {
+                try {
+                    Add-Type -AssemblyName System.Security
+                    $path = Join-Path $env:LOCALAPPDATA "claude-code\credentials.json"
+                    if (Test-Path $path) { Get-Content $path -Raw }
+                } catch {}
+            }
+        ' 2>/dev/null)
+    fi
     if [ -n "$kc_json" ]; then
         token=$(echo "$kc_json" | jq -r '.claudeAiOauth.accessToken // empty' 2>/dev/null)
     fi
     # 3) Fall back to credentials file
     if [ -z "$token" ]; then
-        local creds="$HOME/.claude/.credentials.json"
+        local creds="$_HOME/.claude/.credentials.json"
         [ -f "$creds" ] || { rm -f "$USAGE_LOCK"; return; }
         token=$(jq -r '.claudeAiOauth.accessToken // empty' "$creds" 2>/dev/null)
     fi
