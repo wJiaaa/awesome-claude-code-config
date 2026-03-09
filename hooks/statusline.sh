@@ -93,16 +93,24 @@ bg_fetch_usage() {
         return
     fi
 
-    local api_result
-    api_result=$(curl -s --connect-timeout 2 --max-time 5 \
+    local api_result http_code
+    # Inherit proxy from environment (all_proxy, https_proxy, etc.)
+    http_code=$(curl -s -o "$USAGE_CACHE.tmp" -w '%{http_code}' \
+        --connect-timeout 2 --max-time 5 \
         -H "Authorization: Bearer $token" \
         -H "Content-Type: application/json" \
-        -H "User-Agent: claude-code/2.1.69" \
+        -H "User-Agent: claude-code/2.1.71" \
         -H "anthropic-beta: oauth-2025-04-20" \
         "https://api.anthropic.com/api/oauth/usage" 2>/dev/null)
 
-    if [ -n "$api_result" ] && echo "$api_result" | jq -e '.five_hour' &>/dev/null; then
-        echo "$api_result" > "$USAGE_CACHE" 2>/dev/null
+    if [ "$http_code" = "200" ] && [ -s "$USAGE_CACHE.tmp" ] \
+        && jq -e '.five_hour' "$USAGE_CACHE.tmp" &>/dev/null; then
+        mv -f "$USAGE_CACHE.tmp" "$USAGE_CACHE" 2>/dev/null
+        rm -f "$USAGE_CACHE.err"
+    else
+        rm -f "$USAGE_CACHE.tmp"
+        # Negative cache: record failure timestamp to avoid hammering API
+        echo "$http_code" > "$USAGE_CACHE.err" 2>/dev/null
     fi
     rm -f "$USAGE_LOCK"
 }
@@ -124,9 +132,18 @@ if [ -f "$USAGE_CACHE" ]; then
 fi
 
 # If cache is stale or missing, trigger async background refresh
+# But respect negative cache: skip if last failure was < 5 min ago
 if ! $cache_is_fresh; then
-    bg_fetch_usage &>/dev/null &
-    disown 2>/dev/null
+    _should_fetch=true
+    if [ -f "$USAGE_CACHE.err" ]; then
+        _err_mtime=$(stat -c %Y "$USAGE_CACHE.err" 2>/dev/null || stat -f %m "$USAGE_CACHE.err" 2>/dev/null || echo 0)
+        _err_age=$(( now - _err_mtime ))
+        [ "$_err_age" -lt 300 ] && _should_fetch=false
+    fi
+    if $_should_fetch; then
+        bg_fetch_usage &>/dev/null &
+        disown 2>/dev/null
+    fi
 fi
 
 # --- Colors ---
