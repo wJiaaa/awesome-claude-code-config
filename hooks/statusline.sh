@@ -250,11 +250,16 @@ if [ -n "$dir_name" ]; then
     out+="${sep}${ICON_DIR} ${C_DIR}${dir_name}${C_R}"
 fi
 
-# Conda environment (basename handles prefix-style activations like /path/to/env)
+# Virtual environment (conda > venv/poetry/pipenv)
 conda_env="${CONDA_DEFAULT_ENV:-}"
 conda_env="$(basename "$conda_env")"
-if [ -n "$conda_env" ] && [ "$conda_env" != "base" ]; then
+venv="${VIRTUAL_ENV:-}"
+venv="$(basename "$venv")"
+
+if [ -n "$conda_env" ]; then
     out+="${sep}${ICON_CONDA} ${C_CONDA}${conda_env}${C_R}"
+elif [ -n "$venv" ]; then
+    out+="${sep}${ICON_CONDA} ${C_CONDA}${venv}${C_R}"
 fi
 
 if [ -n "$git_branch" ]; then

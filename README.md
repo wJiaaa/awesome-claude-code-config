@@ -91,7 +91,7 @@ Running `./install.sh` with no arguments launches an interactive menu where you 
     [x] Common rules           Coding style, git, security, testing
     [x] Hooks                  StatusLine display hook
     [x] Lessons template       Cross-session learning framework
-    [x] Custom skills          adversarial-review, paper-reading
+    [x] Custom skills          adversarial-review, paper-reading, humanizer
 
   Language Rules  (only install what your projects need)
     [ ] Python                 PEP 8, pytest, type hints, bandit
@@ -182,7 +182,7 @@ Replaces the previous approach of requiring manual `Read lessons.md` in CLAUDE.m
 
 A single-line status bar with gradient progress bars, powered by `hooks/statusline.sh`:
 
-- **Model** + **directory** + **git branch**
+- **Model** + **directory** + **virtual environment** (conda/venv/poetry/pipenv) + **git branch**
 - **Context window**: gradient bar (green → yellow → red) with percentage and size
 - **5-hour usage**: pulled from `api.anthropic.com/api/oauth/usage` (cached 60s), shows reset countdown
 - Progress bars are fixed-width (20 chars) with 16-step color gradients

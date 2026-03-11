@@ -91,7 +91,7 @@ cd awesome-claude-code-config
     [x] Common rules           编码规范、git、安全、测试
     [x] Hooks                  StatusLine 状态栏
     [x] Lessons template       跨 session 学习框架
-    [x] Custom skills          adversarial-review, paper-reading
+    [x] Custom skills          adversarial-review, paper-reading, humanizer
 
   Language Rules（按需选择）
     [ ] Python                 PEP 8, pytest, type hints, bandit
@@ -182,7 +182,7 @@ cd awesome-claude-code-config
 
 单行状态栏，渐变进度条，由 `hooks/statusline.sh` 驱动：
 
-- **模型** + **目录** + **git 分支**
+- **模型** + **目录** + **虚拟环境**（conda/venv/poetry/pipenv） + **git 分支**
 - **Context 窗口**：渐变进度条（绿 → 黄 → 红），显示百分比和大小
 - **5 小时用量**：从 `api.anthropic.com/api/oauth/usage` 拉取（60s 缓存），显示重置倒计时
 - 进度条固定 20 字符宽，16 级颜色渐变

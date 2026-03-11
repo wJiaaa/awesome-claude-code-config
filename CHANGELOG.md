@@ -1,17 +1,34 @@
 # Changelog
 
+## [1.7.0] - 2026-03-11
+
+### Features
+- **All virtual environments in statusline**: Statusline now detects conda (including `base`), Python venv, poetry, and pipenv environments. Priority: conda > venv/poetry/pipenv
+- **README documentation fixes**: Interactive menu example now lists humanizer skill; statusline description now mentions virtual environment display
+- **Font install improvements**: Prioritized `fc-list` detection over filename glob (catches system-installed fonts); added explicit download timeouts (connect 10s, total 120s) to prevent hanging
+- **Updated statusline screenshot**: Replaced showcase image with current statusline appearance
+
+### Design Rationale
+- Showing conda `base` is useful — users want to confirm which environment is active, even if it's the default
+- `fc-list` is more reliable than filename globbing because system-packaged fonts may use different naming conventions
+- Download timeout of 120s matches the Nerd Font zip size (~30MB) on slow connections while preventing indefinite hangs
+
+### Notes & Caveats
+- Virtual environment detection relies on environment variables (`CONDA_DEFAULT_ENV`, `VIRTUAL_ENV`); manually activated environments without these vars won't be detected
+- Conda takes priority when both conda and venv are active simultaneously
+
 ## [1.6.0] - 2026-03-11
 
 ### Features
 - **jq auto-install (bash)**: `install.sh` now auto-installs jq via package managers (brew/apt/dnf/yum/pacman/apk) or downloads a pre-built binary to `~/.claude/bin/jq` — settings.json smart merge no longer silently skips
-- **Conda environment in statusline**: Shows active conda environment name (except `base`) between directory and git branch segments
+- **Conda environment in statusline**: Shows active conda environment name between directory and git branch segments
 - **Marketplace skip on re-install**: Installer checks if `~/.claude/plugins/marketplaces/{name}` exists before retrying, saving ~75s on repeated installs
 - **Emoji detection + text fallback**: Statusline detects UTF-8 locale, terminal type, and Nerd Font availability — falls back to text labels (`M:`, `D:`, `py:`, `br:`) on unsupported terminals
 - **Nerd Font auto-install**: Installers download and install JetBrainsMono Nerd Font for Powerline git branch icon; prompts user to set terminal font
 
 ### Design Rationale
 - jq install uses a layered approach: check PATH first, then `~/.claude/bin/`, then package managers (with sudo), then static binary download (no sudo needed) — covers CI, macOS, Linux desktop, and minimal containers
-- Conda display excluded `base` environment as it provides no useful signal — users activate named envs for project work
+- Conda display shows all environments including `base` for environment awareness
 - Marketplace directory check is the fastest reliable indicator of "already registered" — avoids 5x3s retry timeout from `claude plugin marketplace add` returning errors on duplicates
 - Icon fallback chain: emoji (UTF-8 terminal) > Nerd Font (fc-list detected) > text labels (dumb/non-UTF-8 terminals) — ensures statusline is always readable
 

@@ -704,7 +704,7 @@ function Install-NerdFont {
 
     $ok = Invoke-Retry -MaxAttempts 3 -DelaySeconds 2 -Description "Download Nerd Font" -Action {
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        Invoke-WebRequest -Uri $url -OutFile $tmpZip -UseBasicParsing
+        Invoke-WebRequest -Uri $url -OutFile $tmpZip -UseBasicParsing -TimeoutSec 120
     }
     if (-not $ok) {
         Write-Warn "Could not download Nerd Font - statusline will use text fallback"

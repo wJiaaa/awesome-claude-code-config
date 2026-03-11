@@ -100,21 +100,20 @@ install_jq() {
 
 # Install JetBrainsMono Nerd Font for statusline icons
 install_nerd_font() {
-    # Check if already installed
+    # Check if already installed (fc-list first — more reliable than filename glob)
+    if command -v fc-list &>/dev/null; then
+        if fc-list 2>/dev/null | grep -qi "JetBrainsMono.*Nerd"; then
+            return 0
+        fi
+    fi
     local font_dir
     case "$(uname -s)" in
         Darwin) font_dir="$HOME/Library/Fonts" ;;
         *)      font_dir="$HOME/.local/share/fonts" ;;
     esac
-    # Check by font files directly (works without fontconfig)
+    # Fallback: check by font files directly (works without fontconfig)
     if ls "$font_dir"/JetBrainsMonoNerd* &>/dev/null 2>&1; then
         return 0
-    fi
-    # Also check via fc-list if available
-    if command -v fc-list &>/dev/null; then
-        if fc-list 2>/dev/null | grep -qi "JetBrainsMono.*Nerd"; then
-            return 0
-        fi
     fi
 
     if $DRY_RUN; then
@@ -129,8 +128,8 @@ install_nerd_font() {
     tmpzip="$(mktemp -t nerd-font-XXXXXX.zip 2>/dev/null || mktemp /tmp/nerd-font-XXXXXX.zip)"
     local url="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip"
 
-    if curl -fsSL "$url" -o "$tmpzip" 2>/dev/null || \
-       wget -qO "$tmpzip" "$url" 2>/dev/null; then
+    if curl --connect-timeout 10 --max-time 120 -fsSL "$url" -o "$tmpzip" 2>/dev/null || \
+       wget --connect-timeout=10 --timeout=120 -qO "$tmpzip" "$url" 2>/dev/null; then
         if command -v unzip &>/dev/null; then
             unzip -oq "$tmpzip" -d "$font_dir" '*.ttf' 2>/dev/null
         else
