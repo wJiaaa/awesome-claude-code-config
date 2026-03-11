@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.8.0] - 2026-03-11
+
+### Features
+- **`/update_config` skill**: In-session update command — type `/update_config` in Claude Code to check for new versions and re-run the interactive installer without leaving the session. Compares installed vs remote VERSION, downloads latest `install.sh`, and launches the interactive selector.
+
+### Design Rationale
+- Skill-based approach (vs. a standalone script) lets users update from within any Claude Code session with a single slash command, no terminal switching needed
+- Reuses the existing `install.sh` remote mode and smart merge — no new update logic to maintain
+
+### Notes & Caveats
+- Requires internet access to fetch remote VERSION and installer
+- The installer's smart merge preserves existing `settings.json` customizations and never overwrites `lessons.md`
+
 ## [1.7.0] - 2026-03-11
 
 ### Features
