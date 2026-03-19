@@ -98,11 +98,11 @@ install_jq() {
     return 1
 }
 
-# Install JetBrainsMono Nerd Font for statusline icons
+# Install MesloLGS NF font for statusline icons (bundled in fonts/)
 install_nerd_font() {
     # Check if already installed (fc-list first — more reliable than filename glob)
     if command -v fc-list &>/dev/null; then
-        if fc-list 2>/dev/null | grep -qi "JetBrainsMono.*Nerd"; then
+        if fc-list 2>/dev/null | grep -qi "MesloLGS NF"; then
             return 0
         fi
     fi
@@ -112,49 +112,38 @@ install_nerd_font() {
         *)      font_dir="$HOME/.local/share/fonts" ;;
     esac
     # Fallback: check by font files directly (works without fontconfig)
-    if ls "$font_dir"/JetBrainsMonoNerd* &>/dev/null 2>&1; then
+    if ls "$font_dir"/MesloLGS\ NF* &>/dev/null 2>&1; then
         return 0
     fi
 
     if $DRY_RUN; then
-        info "Would download and install JetBrainsMono Nerd Font"
+        info "Would install MesloLGS NF font"
         return 0
     fi
 
-    info "Installing JetBrainsMono Nerd Font for statusline icons..."
+    info "Installing MesloLGS NF font for statusline icons..."
     mkdir -p "$font_dir"
 
-    local tmpzip
-    tmpzip="$(mktemp -t nerd-font-XXXXXX.zip 2>/dev/null || mktemp /tmp/nerd-font-XXXXXX.zip)"
-    local url="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip"
-
-    if curl --connect-timeout 10 --max-time 120 -fsSL "$url" -o "$tmpzip" 2>/dev/null || \
-       wget --connect-timeout=10 --timeout=120 -qO "$tmpzip" "$url" 2>/dev/null; then
-        if command -v unzip &>/dev/null; then
-            unzip -oq "$tmpzip" -d "$font_dir" '*.ttf' 2>/dev/null
-        else
-            warn "unzip not found — cannot extract Nerd Font"
-            rm -f "$tmpzip"
-            return 1
-        fi
-        rm -f "$tmpzip"
-        # Verify extraction succeeded
-        if ! ls "$font_dir"/JetBrainsMonoNerd* &>/dev/null 2>&1; then
-            warn "Nerd Font extraction failed — no font files found"
-            return 1
-        fi
-        # Refresh font cache
-        if command -v fc-cache &>/dev/null; then
-            fc-cache -f "$font_dir" 2>/dev/null || true
-        fi
-        ok "JetBrainsMono Nerd Font installed to $font_dir"
-        warn "Set your terminal font to 'JetBrainsMono Nerd Font' for best icon display"
-        return 0
+    # Copy bundled fonts from repository
+    local src_dir="$SCRIPT_DIR/fonts"
+    if [ ! -d "$src_dir" ] || ! ls "$src_dir"/*.ttf &>/dev/null 2>&1; then
+        warn "Bundled fonts not found in $src_dir — statusline will use text fallback"
+        return 1
     fi
+    cp "$src_dir"/*.ttf "$font_dir"/
 
-    rm -f "$tmpzip"
-    warn "Could not download Nerd Font — statusline will use text fallback"
-    return 1
+    # Verify copy succeeded
+    if ! ls "$font_dir"/MesloLGS\ NF* &>/dev/null 2>&1; then
+        warn "Font installation failed — no font files found"
+        return 1
+    fi
+    # Refresh font cache
+    if command -v fc-cache &>/dev/null; then
+        fc-cache -f "$font_dir" 2>/dev/null || true
+    fi
+    ok "MesloLGS NF font installed to $font_dir"
+    warn "Set your terminal font to 'MesloLGS NF' for best icon display"
+    return 0
 }
 
 # --- Remote install detection -------------------------------------------

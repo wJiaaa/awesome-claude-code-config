@@ -695,40 +695,33 @@ function Install-Jq {
 function Install-NerdFont {
     # Check if already installed
     $fontDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows\Fonts"
-    if ((Test-Path $fontDir) -and (Get-ChildItem $fontDir -Filter "*JetBrainsMono*Nerd*" -ErrorAction SilentlyContinue)) {
+    if ((Test-Path $fontDir) -and (Get-ChildItem $fontDir -Filter "*MesloLGS NF*" -ErrorAction SilentlyContinue)) {
         return
     }
 
     if ($DryRun) {
-        Write-Info "Would download and install JetBrainsMono Nerd Font"
+        Write-Info "Would install MesloLGS NF font"
         return
     }
 
-    Write-Info "Installing JetBrainsMono Nerd Font for statusline icons..."
+    Write-Info "Installing MesloLGS NF font for statusline icons..."
 
-    $tmpZip = Join-Path ([System.IO.Path]::GetTempPath()) "JetBrainsMono-NerdFont.zip"
-    $url = "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip"
-
-    $ok = Invoke-Retry -MaxAttempts 3 -DelaySeconds 2 -Description "Download Nerd Font" -Action {
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        Invoke-WebRequest -Uri $url -OutFile $tmpZip -UseBasicParsing -TimeoutSec 120
-    }
-    if (-not $ok) {
-        Write-Warn "Could not download Nerd Font - statusline will use text fallback"
+    # Copy bundled fonts from repository
+    $srcDir = Join-Path $SCRIPT_DIR "fonts"
+    $ttfFiles = Get-ChildItem $srcDir -Filter "*.ttf" -ErrorAction SilentlyContinue
+    if (-not $ttfFiles) {
+        Write-Warn "Bundled fonts not found in $srcDir - statusline will use text fallback"
         return
     }
 
     try {
-        $tmpExtract = Join-Path ([System.IO.Path]::GetTempPath()) "NerdFont-$(Get-Random)"
-        Expand-Archive -Path $tmpZip -DestinationPath $tmpExtract -Force
-
         # Install to user fonts directory
         if (-not (Test-Path $fontDir)) {
             New-Item -ItemType Directory -Path $fontDir -Force | Out-Null
         }
 
         $regPath = "HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
-        Get-ChildItem $tmpExtract -Filter "*.ttf" | ForEach-Object {
+        $ttfFiles | ForEach-Object {
             $dst = Join-Path $fontDir $_.Name
             Copy-Item $_.FullName $dst -Force
             # Register font in user registry
@@ -736,14 +729,10 @@ function Install-NerdFont {
             New-ItemProperty -Path $regPath -Name $fontName -Value $dst -PropertyType String -Force | Out-Null
         }
 
-        Remove-Item $tmpExtract -Recurse -Force -ErrorAction SilentlyContinue
-        Remove-Item $tmpZip -Force -ErrorAction SilentlyContinue
-
-        Write-Ok "JetBrainsMono Nerd Font installed"
-        Write-Warn "Set your terminal font to 'JetBrainsMono Nerd Font' for best icon display"
+        Write-Ok "MesloLGS NF font installed"
+        Write-Warn "Set your terminal font to 'MesloLGS NF' for best icon display"
     } catch {
         Write-Warn "Could not install Nerd Font: $_"
-        Remove-Item $tmpZip -Force -ErrorAction SilentlyContinue
     }
 }
 
