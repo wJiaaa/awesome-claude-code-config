@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.9.2] - 2026-03-19
+
+### Features
+- **Bundled MesloLGS NF font**: Replaced online JetBrainsMono Nerd Font download (~30MB zip from GitHub) with 4 bundled MesloLGS NF .ttf files (~10MB total) — font installation is now instant with no network dependency
+
+### Design Rationale
+- GitHub releases download was slow/unreliable in poor network environments, blocking the entire install flow
+- MesloLGS NF is a well-established Nerd Font (used by Powerlevel10k) that provides the same Powerline/icon glyphs needed for statusline
+- Bundling ~10MB of fonts in the repo is an acceptable trade-off vs requiring network access during install
+
+### Notes & Caveats
+- Font files sourced from romkatv/powerlevel10k-media (Apache 2.0 license)
+- Both install.sh and install.ps1 updated — no more curl/wget/Invoke-WebRequest for fonts
+- Terminal font setting prompt now recommends 'MesloLGS NF' instead of 'JetBrainsMono Nerd Font'
+
 ## [1.9.1] - 2026-03-17
 
 ### Features
