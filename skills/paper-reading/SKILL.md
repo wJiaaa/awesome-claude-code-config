@@ -23,58 +23,41 @@ A structured approach to reading and summarizing scientific research papers. **A
 ```dot
 digraph paper_reading {
     rankdir=TB;
-    "Receive paper" -> "Determine source type";
-    "Determine source type" -> "Smart content acquisition";
-    "Smart content acquisition" -> "Verify content loaded";
-    "Verify content loaded" -> "Success?" [shape=diamond];
-    "Success?" -> "Try next fallback" [label="no"];
-    "Try next fallback" -> "Smart content acquisition";
-    "Success?" -> "Identify paper type" [label="yes"];
+    "Receive paper" -> "Get PDF file";
+    "Get PDF file" -> "Read PDF content";
+    "Read PDF content" -> "Identify paper type";
     "Identify paper type" -> "Prepare output directory";
-    "Prepare output directory" -> "Screenshot key figures";
-    "Screenshot key figures" -> "Fill type-specific template";
+    "Prepare output directory" -> "Extract figures (pymupdf4llm)";
+    "Extract figures (pymupdf4llm)" -> "Filter & rename images";
+    "Filter & rename images" -> "Fill type-specific template";
     "Fill type-specific template" -> "Write markdown file";
 }
 ```
 
-## Step 1: Smart Content Acquisition
+## Step 1: PDF Acquisition
 
-### Source Identification and Acquisition Strategy
+All papers are processed as PDF. No HTML/ar5iv path.
 
-Automatically select the best acquisition path based on paper source:
+| Source | Detection | Action |
+|--------|-----------|--------|
+| Local PDF | File path ends with `.pdf` | Use directly |
+| arXiv URL | Contains `arxiv.org` | Extract paper ID → download `https://arxiv.org/pdf/XXXX.XXXXX` |
+| Other URL | Default | Try downloading as PDF; if not a PDF, use WebFetch for text |
 
-| Source | Detection | Primary | Fallback 1 | Fallback 2 |
-|--------|-----------|---------|------------|------------|
-| arXiv | URL contains `arxiv.org` | ar5iv HTML (Playwright) | WebFetch ar5iv | Read PDF |
-| ACL Anthology | URL contains `aclanthology.org` | Direct HTML (Playwright) | WebFetch | Read PDF |
-| OpenReview | URL contains `openreview.net` | Playwright open | WebFetch | Read PDF |
-| Local PDF | File path `.pdf` | Read PDF | — | — |
-| Other URL | Default | Playwright open | WebFetch | Prompt user |
+### Download Flow
 
-### arXiv Paper Acquisition Flow
+```bash
+# For arXiv: extract ID and download PDF
+curl -L -o <output_dir>/paper.pdf "https://arxiv.org/pdf/XXXX.XXXXX"
 
-```
-1. Extract paper ID from URL (e.g., 2505.10911)
-2. Construct ar5iv URL: https://ar5iv.labs.arxiv.org/html/XXXX.XXXXX
-3. browser_navigate to open the page
-4. Load verification: browser_run_code to check page contains paper content
-   - Check document.querySelector('article, .ltx_document, .ltx_page')
-   - If returns null or page title contains "error"/"not found" → mark as failed
-5. On failure:
-   a. WebFetch the ar5iv URL for plain text
-   b. Still failing: Read PDF (arxiv.org/pdf/XXXX.XXXXX)
-   c. In PDF mode, use Path B (pymupdf) for figure extraction (see Step 3)
+# For other URLs: try direct download
+curl -L -o <output_dir>/paper.pdf "<url>"
+# Verify it's a valid PDF: file <output_dir>/paper.pdf should show "PDF document"
 ```
 
-### Non-arXiv Paper Acquisition Flow
+### Read Content
 
-```
-1. Try Playwright browser_navigate to open URL directly
-2. browser_run_code to check page has substantial text content
-   - document.body.innerText.length > 500 → success
-3. On failure: WebFetch URL
-4. Still failing: prompt user to provide PDF file
-```
+Use the **Read tool** to read the PDF file. Claude natively supports reading PDF files and extracting text content. For large PDFs (>10 pages), read in page ranges (e.g., `pages: "1-10"`, then `pages: "11-20"`).
 
 ## Step 2: Paper Type Identification
 
@@ -89,7 +72,7 @@ After reading the title, abstract, and introduction, determine paper type:
 
 **When uncertain, default to the Empirical template.**
 
-## Step 3: Figure Screenshot Workflow
+## Step 3: Figure & Table Extraction (pymupdf4llm)
 
 ### 1. Prepare Output Directory
 
@@ -97,171 +80,136 @@ After reading the title, abstract, and introduction, determine paper type:
 mkdir -p <output_dir>/images
 ```
 
-### 2. Choose Extraction Path
-
-Select the extraction method based on the content source used in Step 1:
-
-| Content Source | Extraction Method | When |
-|---|---|---|
-| HTML page (ar5iv, project page) | **Path A: Playwright element screenshot** | Paper loaded as HTML in browser |
-| Local/downloaded PDF | **Path B: pymupdf precise extraction** | Paper read as PDF via Read tool or pdftotext |
-
-**CRITICAL: Never render entire PDF pages as images.** Full-page renders flood figures with surrounding text. Always use precise clipping or direct image extraction.
-
-### 3. Screenshot Priority Guide
+### 2. Screenshot Priority Guide
 
 | Priority | Figure Type | When to Capture |
 |----------|-------------|-----------------|
-| Must | System architecture / overall framework | Always |
-| Must | Main experiment results table/chart | Always |
+| Must | System architecture / overall framework | If available |
+| Must | Main experiment results table/chart | If available |
 | Recommended | Core algorithm flowchart | If available |
 | Recommended | Ablation study charts | If available |
 | Optional | Visualization / qualitative results | If space allows |
 | Optional | Auxiliary illustrations | As needed |
 
-Capture **3-8** key figures per paper.
+Capture **3-8** key figures per paper. If the paper has few or no meaningful figures (e.g., theoretical papers, short workshop papers), skip figure extraction and produce a text-only summary.
 
----
+### 3. Automated Extraction with pymupdf4llm
 
-### Path A: HTML Source (Playwright)
+Use pymupdf4llm to extract all images and vector graphics in one call. This handles raster images (photos, embedded figures) AND vector graphics (plots, diagrams, flowcharts) automatically.
 
-#### Discover figure elements
+**Prerequisites:** `pymupdf` and `pymupdf4llm` must be installed in the conda base environment.
 
-```javascript
-async (page) => {
-  const figures = await page.locator('figure, .ltx_figure, .ltx_table').all();
-  const results = [];
-  for (let i = 0; i < figures.length; i++) {
-    const fig = figures[i];
-    const caption = await fig.locator('figcaption, .ltx_caption').first().textContent().catch(() => '');
-    const id = await fig.getAttribute('id').catch(() => '');
-    const box = await fig.boundingBox().catch(() => null);
-    results.push({ index: i, id, caption: caption?.slice(0, 200), hasBox: !!box });
-  }
-  return JSON.stringify(results, null, 2);
-}
+```bash
+# Install if needed (one-time)
+source $HOME/anaconda3/etc/profile.d/conda.sh && conda activate base
+pip install pymupdf4llm
 ```
 
-#### Take element screenshots
+**Run extraction:**
 
-```javascript
-// Method 1: element screenshot (preferred)
-async (page) => {
-  const fig = page.locator('figure, .ltx_figure').nth(INDEX);
-  await fig.scrollIntoViewIfNeeded();
-  await fig.screenshot({ path: '<output_dir>/images/figure_N_desc.png' });
-  return 'success';
-}
+```bash
+source $HOME/anaconda3/etc/profile.d/conda.sh && conda activate base && python3 << 'PYEOF'
+import pymupdf4llm
+import os
 
-// Method 2: clip-based fallback
-async (page) => {
-  const fig = page.locator('figure, .ltx_figure').nth(INDEX);
-  await fig.scrollIntoViewIfNeeded();
-  const box = await fig.boundingBox();
-  if (box) {
-    await page.screenshot({
-      path: '<output_dir>/images/figure_N_desc.png',
-      clip: {
-        x: Math.max(0, box.x - 10),
-        y: Math.max(0, box.y - 10),
-        width: box.width + 20,
-        height: box.height + 20
-      }
-    });
-    return 'fallback success';
-  }
-  return 'failed';
-}
+pdf_path = "<pdf_path>"
+image_dir = "<output_dir>/images"
+os.makedirs(image_dir, exist_ok=True)
+
+# Extract all figures, tables, and vector graphics as images
+md_result = pymupdf4llm.to_markdown(
+    pdf_path,
+    write_images=True,
+    image_path=image_dir,
+    image_format="png",
+    dpi=200,
+    use_ocr=False,        # Disable OCR (avoids tesseract dependency)
+)
+
+# List extracted images
+for f in sorted(os.listdir(image_dir)):
+    if f.endswith(('.png', '.jpg', '.jpeg')):
+        from PIL import Image
+        try:
+            img = Image.open(os.path.join(image_dir, f))
+            print(f"{f}: {img.size[0]}x{img.size[1]}")
+        except:
+            print(f"{f}: (size unknown)")
+PYEOF
 ```
 
----
+### 4. Filter & Rename Extracted Images
 
-### Path B: PDF Source (pymupdf) — Preferred for PDF papers
+pymupdf4llm extracts ALL graphical regions, including logos, watermarks, and decorative elements. Filter and rename:
 
-When the paper is read as a PDF (local file or downloaded), use pymupdf (fitz) for precise figure extraction. This produces much higher quality results than full-page rendering.
+**Step 4a: Filter out noise** — Remove images that are:
+- Too small (< 100x100 px) — likely icons or logos
+- Too narrow (aspect ratio > 10:1 or < 1:10) — likely decorative lines or borders
 
-**Prerequisites:** Ensure pymupdf is installed (`pip install pymupdf`) and the local PDF file path is known before entering this path. If `import fitz` fails, fall back to Path A with a browser-rendered PDF or inform the user.
+```bash
+source $HOME/anaconda3/etc/profile.d/conda.sh && conda activate base && python3 << 'PYEOF'
+import os
+from PIL import Image
 
-#### Step B1: Analyze embedded images and page structure
+image_dir = "<output_dir>/images"
+removed = []
+for f in os.listdir(image_dir):
+    path = os.path.join(image_dir, f)
+    try:
+        img = Image.open(path)
+        w, h = img.size
+        ratio = max(w, h) / max(min(w, h), 1)
+        if w < 100 and h < 100:
+            os.remove(path)
+            removed.append(f"{f} (too small: {w}x{h})")
+        elif ratio > 10:
+            os.remove(path)
+            removed.append(f"{f} (too narrow: {w}x{h})")
+    except:
+        pass
 
-**Note:** `get_images()` only discovers **raster-embedded** images. Many research paper figures (plots, diagrams, tables) are **vector-only** or text-based — these will not appear in the image list. Use `get_text("dict")` to find text blocks and `get_drawings()` to detect vector graphics for comprehensive figure region detection.
+print(f"Removed {len(removed)} noise images:")
+for r in removed:
+    print(f"  - {r}")
 
-```python
+kept = [f for f in sorted(os.listdir(image_dir)) if f.endswith(('.png', '.jpg'))]
+print(f"\nKept {len(kept)} images:")
+for f in kept:
+    img = Image.open(os.path.join(image_dir, f))
+    print(f"  {f}: {img.size[0]}x{img.size[1]}")
+PYEOF
+```
+
+**Step 4b: Visual review & rename** — Use the Read tool to view each remaining image. Based on content:
+- Rename to descriptive names: `figure_1_overview.png`, `table_2_main_results.png`, etc.
+- Delete any remaining non-figure images (headers, footers, etc.)
+- Select 3-8 key figures for the summary based on the priority guide above
+
+### 5. Fallback: Manual pymupdf clip extraction
+
+If pymupdf4llm misses a specific figure or table (rare), use direct pymupdf clip rendering:
+
+```bash
+source $HOME/anaconda3/etc/profile.d/conda.sh && conda activate base && python3 << 'PYEOF'
 import fitz
 
-doc = fitz.open('<pdf_path>')
+doc = fitz.open("<pdf_path>")
+page = doc[PAGE_NUM]  # 0-indexed
 
-# List all embedded raster images with their page positions
-for page_idx in range(len(doc)):
-    page = doc[page_idx]
-    images = page.get_images(full=True)
-    if images:
-        print(f"\nPage {page_idx+1}: {len(images)} raster images")
-        for img_idx, img in enumerate(images):
-            xref = img[0]
-            img_info = doc.extract_image(xref)
-            print(f"  xref={xref}: {img_info['width']}x{img_info['height']}, {img_info['ext']}")
-
-    # Also get bounding boxes for positioning
-    img_list = page.get_image_info(xrefs=True)
-    for info in img_list:
-        bbox = info['bbox']
-        print(f"  xref={info['xref']}, bbox=({bbox[0]:.1f}, {bbox[1]:.1f}, {bbox[2]:.1f}, {bbox[3]:.1f})")
-
-    # Check for vector drawings (plots, diagrams, flowcharts)
-    drawings = page.get_drawings()
-    if drawings:
-        print(f"  + {len(drawings)} vector drawings detected")
+# Render a specific region at high resolution
+clip = fitz.Rect(x0, y0, x1, y1)  # coordinates from page layout
+mat = fitz.Matrix(3, 3)  # 3x zoom
+pix = page.get_pixmap(matrix=mat, clip=clip)
+pix.save("<output_dir>/images/figure_N_desc.png")
+doc.close()
+PYEOF
 ```
 
-#### Step B2: Extract using two methods
-
-**Method 1: Direct image extraction** — **only** for standalone raster images without annotations (teaser photos, embedded logos). This extracts the raw embedded image, which may be missing page-level crops, vector labels, axes, masks, and annotations:
-
-```python
-# Extract the original embedded raster image at full resolution
-# WARNING: Only use for standalone photos/teasers without overlaid text or vector annotations
-img = doc.extract_image(xref)
-with open(f'{output_dir}/images/figure_N_desc.{img["ext"]}', 'wb') as f:
-    f.write(img['image'])
-```
-
-**Method 2: Clip-based region rendering** (preferred) — for annotated figures, tables, composite figures, multi-panel diagrams, and any figure with vector/text overlays:
-
-```python
-# Render only a precise rectangular region of the page
-page = doc[page_idx]
-scale = 3  # 3x resolution for clarity
-clip_rect = fitz.Rect(x0, y0, x1, y1)  # determined from bbox analysis
-mat = fitz.Matrix(scale, scale)
-pix = page.get_pixmap(matrix=mat, clip=clip_rect)
-pix.save(f'{output_dir}/images/figure_N_desc.png')
-```
-
-#### Step B3: Determine clip coordinates
-
-Use the bounding box data from Step B1 to identify figure/table regions:
-
-1. **For standalone raster photos/teasers (no annotations):** Use `extract_image(xref)` directly — no clipping needed
-2. **For annotated figures or figures with vector overlays:** Always use clip-based rendering (Method 2) to capture the complete composed figure including labels and axes
-3. **For composite figures (multiple sub-images):** Find the outermost bbox that covers all sub-images, add 5-10pt margin
-4. **For vector-only figures (no raster images found):** Use `get_text("dict")` to locate caption text (e.g., "Figure 1"), then estimate the figure region above/below the caption. Use clip-based rendering with a generous initial area, then iterate
-5. **For tables:** Use `get_text("dict")` to find table header/footer text positions and define the clip region. Start with a generous clip, then verify and tighten boundaries iteratively
-4. **Always add margin (5-10pt)** around the clip rect to avoid cutting off content
-
-#### Step B4: Verify and iterate
-
-After each extraction:
-- Use the Read tool to visually verify the image
-- If content is cut off → extend the boundary in that direction
-- If extra text is included → tighten the boundary
-- Iterate until the capture is precise (figure/table content only, no surrounding text)
-
----
+To find coordinates: use `page.get_text("dict")` to find text blocks containing "Figure N" or "Table N", then estimate the figure region nearby.
 
 ### File Naming
 
-Format: `figure_N_<brief_desc>.png` (or `.jpg` for directly extracted JPEGs)
+Format: `figure_N_<brief_desc>.png` / `table_N_<brief_desc>.png`
 
 Examples:
 - `figure_1_overview.png` — system overview
@@ -326,7 +274,7 @@ All types share these sections:
 ## Technical Method
 ### Overall Framework and Principles
 <!-- Insert architecture diagram -->
-![Figure X: Description](./images/figure_X.png)
+<!-- Insert figure here: ![Figure N: description](./images/figure_N_desc.png) -->
 
 - Overall system architecture description
 - Modules/components and their responsibilities
@@ -344,7 +292,7 @@ All types share these sections:
 
 ## Experimental Results
 <!-- Insert experiment result figures/tables -->
-![Figure Y: Description](./images/figure_Y.png)
+<!-- Insert figure here: ![Figure N: description](./images/figure_N_desc.png) -->
 
 ### Results (Facts)
 - **Experimental setup:** Environment, hardware, hyperparameters
@@ -443,7 +391,7 @@ All types share these sections:
 
 ## Taxonomy
 <!-- Insert taxonomy/classification figure -->
-![Figure X: Description](./images/figure_X.png)
+<!-- Insert figure here: ![Figure N: description](./images/figure_N_desc.png) -->
 
 - Main classification dimensions and rationale for their selection
 - Category definitions and representative works
@@ -495,7 +443,7 @@ All types share these sections:
 ## System Design
 ### Architecture Overview
 <!-- Insert system architecture diagram -->
-![Figure X: Description](./images/figure_X.png)
+<!-- Insert figure here: ![Figure N: description](./images/figure_N_desc.png) -->
 
 - Overall architecture and component breakdown
 - Component responsibilities and interfaces
@@ -512,7 +460,7 @@ All types share these sections:
 
 ## Performance Evaluation
 <!-- Insert performance comparison figures/tables -->
-![Figure Y: Description](./images/figure_Y.png)
+<!-- Insert figure here: ![Figure N: description](./images/figure_N_desc.png) -->
 
 ### Experimental Facts
 - **Benchmark setup:** Environment, hardware, workloads
@@ -593,7 +541,7 @@ All types share these sections:
 - **Loss functions:** Write the actual LaTeX equation if provided
 - **Training data:** Note if synthetic, real-world, or mixed; mention dataset names and scale
 - **Design motivation:** Every key design choice should explain why (paper's justification or inferred reasoning)
-- **Must insert architecture diagram screenshot**
+- **Insert architecture diagram screenshot if available**
 
 ### Experimental Results
 - **Separate facts from interpretation:** Results section writes experimental data only; Analysis section writes explanations and attribution
@@ -601,7 +549,7 @@ All types share these sections:
 - Note which metrics matter most for this problem domain
 - Mention any surprising or counterintuitive results
 - Note best and worst performing scenarios/datasets
-- **Must insert main result figure/table screenshot**
+- **Insert main result figure/table screenshot if available**
 
 ### Critical Analysis
 - **Strengths:** Must specify concrete improvements, not just "good results"
@@ -623,11 +571,11 @@ All types share these sections:
 | Ignoring failure cases | Note where method underperforms and on which datasets |
 | Skipping mathematical notation | Include key LaTeX equations when available |
 | Not screenshotting paper figures | Must capture architecture and main result figures |
-| Rendering entire PDF pages as images | Never full-page render; use pymupdf clip or extract_image for precise figures |
+| Rendering entire PDF pages as images | Use pymupdf4llm write_images=True for automatic precise extraction |
 | Misplaced image insertion | Images should be adjacent to corresponding text |
 | Vague critiques | Must name specific limitations (scenario, data, assumptions) |
 | Wrong paper type classification | Read abstract and intro fully before classifying; default to Empirical |
-| Giving up after screenshot failure | Try element screenshot first, fall back to clip-based screenshot or pymupdf |
+| Giving up after screenshot failure | Use pymupdf4llm auto-extraction first, fall back to manual pymupdf clip |
 | Writing only "what" without "why" | Every design choice should explain the motivation and justification |
 | Mixing results and conclusions | Separate experimental facts (Results) from author interpretation (Analysis) |
 | Missing related work positioning | Must compare against 2-3 closest prior works |

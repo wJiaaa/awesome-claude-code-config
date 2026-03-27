@@ -285,7 +285,7 @@ CLAUDE.md includes a **Version Changelog** rule: when making version-level chang
 
 | Skill | Description |
 |-------|-------------|
-| **paper-reading** | Structured research paper summarization with auto-screenshot of key figures. Uses ar5iv HTML for arXiv papers, Playwright for figure capture, outputs standardized markdown (problem, method, experiments, insights). |
+| **paper-reading** | Structured research paper summarization with automatic figure extraction. Pure PDF pipeline using pymupdf4llm for precise image/vector/table extraction (no ar5iv/Playwright dependency), outputs standardized markdown (problem, method, experiments, insights). |
 | **[adversarial-review](https://github.com/poteto/noodle/tree/main/.agents/skills/adversarial-review)** | Cross-model adversarial code review. Spawns reviewers on the opposite AI model (Claude ↔ Codex) with distinct critical lenses (Skeptic, Architect, Minimalist), then synthesizes a structured verdict (PASS/CONTESTED/REJECT). |
 | **[humanizer](https://github.com/blader/humanizer)** | Detect and remove AI writing patterns from text. Based on Wikipedia's "Signs of AI writing" guide, identifies 24 patterns across content, language, style, and communication categories (significance inflation, AI vocabulary, em dash overuse, sycophantic tone, etc.) and rewrites text to sound natural. |
 | **update_config** | In-session update command. Type `/update_config` in Claude Code to check for new versions and re-run the interactive installer — no need to leave the session. |

@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.9.4] - 2026-03-27
+
+### Features
+- **paper-reading skill**: Replaced unreliable ar5iv HTML + Playwright screenshot pipeline with pure PDF + pymupdf4llm automatic extraction. Figures, vector graphics, and tables are now extracted directly from PDF with `pymupdf4llm.to_markdown(write_images=True)`, then filtered and renamed automatically.
+
+### Design Rationale
+- ar5iv coverage is incomplete — many papers lack HTML versions, causing the screenshot flow to fail entirely
+- Old pymupdf manual bbox approach (Path B) was fragile: frequently captured surrounding text, required iterative manual clipping
+- pymupdf4llm wraps `get_images()` + `cluster_drawings()` + `get_pixmap(clip=...)` into a single call, handling both raster and vector figures automatically
+- Added graceful degradation: theoretical papers with no meaningful figures now produce text-only summaries instead of stalling on extraction
+
+### Notes & Caveats
+- Requires `pymupdf4llm` package (auto-installs `pymupdf` as dependency)
+- OCR disabled by default (`use_ocr=False`) to avoid tesseract dependency
+- Template image placeholders changed from hardcoded `figure_X.png` to HTML comment guides
+- Net reduction of ~50 lines in SKILL.md (643 → 592 lines)
+
 ## [1.9.3] - 2026-03-26
 
 ### Features
