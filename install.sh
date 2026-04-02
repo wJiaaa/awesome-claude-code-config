@@ -438,17 +438,6 @@ interactive_menu() {
         return
     fi
 
-    # Validate fd 3 is not broken (EOF). ret=1 means EOF — fd is unusable.
-    # ret=0 (got a stray byte) or ret=142 (timeout) both mean the terminal works.
-    local _probe="" _probe_ret=0
-    IFS= read -r -s -n 1 -t 0.2 _probe <&3 2>/dev/null || _probe_ret=$?
-    if [[ $_probe_ret -eq 1 ]]; then
-        warn "Terminal input not available (EOF), falling back to default install"
-        exec 3<&- 2>/dev/null || true
-        INSTALL_ALL=true
-        return
-    fi
-
     # --- Two-level menu data structure ---
     # Each group has: label, hint, and an array of items.
     # Item format: "label|description|default_on|id"
@@ -582,8 +571,13 @@ optimization|Quantization & optimization (GPTQ, AWQ, Flash Attn)|0|plug-optimiza
     fi
 
     _read_key() {
-        local key
-        IFS= read -r -s -n 1 key <&3 2>/dev/null || true
+        local key="" _read_ret=0
+        IFS= read -r -s -n 1 key <&3 2>/dev/null || _read_ret=$?
+        # EOF (ret=1) → treat as quit, not enter
+        if [[ $_read_ret -eq 1 ]]; then
+            echo "QUIT"
+            return
+        fi
 
         if [[ "$key" == $'\033' ]]; then
             local rest=""
