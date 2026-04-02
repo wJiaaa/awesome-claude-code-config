@@ -105,7 +105,7 @@ Running `./install.sh` with no arguments launches an interactive menu where you 
 
 **Two-level menu**: Use ↑↓ to navigate groups, Enter to open a group's sub-menu where you can toggle individual items with Space. Navigate to Submit and press Enter to install.
 
-The **Review** group lets you choose between [adversarial-review](https://github.com/poteto/noodle) (cross-model, spawns Codex reviewers) and [Codex adversarial-review](https://github.com/openai/codex-plugin-cc) (Codex plugin built-in). These two are **mutually exclusive** — selecting one automatically deselects the other.
+The **Review** group lets you choose between [adversarial-review](https://github.com/poteto/noodle) (cross-model, spawns Codex reviewers) and [Codex CLI](https://github.com/openai/codex-plugin-cc) (Codex plugin built-in). These two are **mutually exclusive** — selecting one automatically deselects the other.
 
 ### Menu Groups
 
@@ -113,7 +113,7 @@ The **Review** group lets you choose between [adversarial-review](https://github
 |-------|-------|---------|
 | Core (5) | CLAUDE.md, settings.json, Common rules, StatusLine, Lessons | All On |
 | Language Rules (3) | Python, TypeScript, Go | All Off |
-| Review (3) | code-review plugin, adversarial-review, Codex adversarial-review | code-review + adversarial-review On |
+| Review (3) | code-review plugin, adversarial-review, Codex CLI | code-review + adversarial-review On |
 | Skills (4) | paper-reading, humanizer, humanizer-zh, update-config | humanizer-zh Off, rest On |
 | Plugins — Official (12) | everything-claude-code, superpowers, context7, commit-commands, document-skills, playwright, feature-dev, code-simplifier, ralph-loop, frontend-design, example-skills, github | All On |
 | Plugins — Community (3) | claude-mem, claude-health, PUA | All Off |
@@ -290,7 +290,7 @@ Place custom skills in `skills/<name>/SKILL.md`.
 CLAUDE.md includes a **Code Review** rule: whenever a code review is needed — whether requested by the user or triggered by a skill (e.g., `code-reviewer`, `simplify`) — Claude invokes the review tool selected during installation. Two options are available in the **Review** menu group:
 
 - **[adversarial-review](https://github.com/poteto/noodle)** (default): Cross-model review that spawns reviewers on the opposite model with distinct critical lenses (Skeptic, Architect, Minimalist). Requires `codex` CLI installed. Falls back to `code-reviewer` agent if unavailable.
-- **[Codex adversarial-review](https://github.com/openai/codex-plugin-cc)**: Codex plugin built-in review. Requires `OPENAI_API_KEY` set in your environment. Falls back to `code-reviewer` agent if unavailable.
+- **[Codex CLI](https://github.com/openai/codex-plugin-cc)**: Codex plugin built-in review. Requires `OPENAI_API_KEY` set in your environment. Falls back to `code-reviewer` agent if unavailable.
 
 These two options are mutually exclusive. The installer dynamically configures CLAUDE.md based on your selection, including fallback behavior.
 
