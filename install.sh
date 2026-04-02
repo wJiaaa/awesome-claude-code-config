@@ -546,7 +546,7 @@ optimization|Quantization & optimization (GPTQ, AWQ, Flash Attn)|0|plug-optimiza
             ALL_DESCS+=("$_d")
             ALL_DEFAULTS+=("$_df")
             ALL_IDS+=("$_id")
-            (( flat_idx++ ))
+            (( ++flat_idx ))
         done <<< "${GROUP_ITEMS[$g]}"
         GROUP_END[$g]=$(( flat_idx - 1 ))
     done
@@ -1442,7 +1442,7 @@ install_plugins() {
         local fixed=0
         while IFS= read -r -d '' sh_file; do
             chmod +x "$sh_file"
-            (( fixed++ ))
+            (( ++fixed ))
         done < <(find "$HOME/.claude/plugins/marketplaces" -name "*.sh" -type f ! -perm -u+x -print0 2>/dev/null)
         if (( fixed > 0 )); then
             ok "Fixed execute permissions on $fixed plugin shell script(s)"
