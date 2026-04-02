@@ -6,7 +6,7 @@
 
 ![Statusline](assets/statusline.png)
 
-Production-ready configuration for [Claude Code](https://claude.com/claude-code) — one-command install of global instructions, multi-language coding rules (Python / TypeScript / Go), 22 curated plugins, custom skills (paper-reading, [humanizer](https://github.com/blader/humanizer), update-config), [Codex adversarial-review](https://github.com/openai/codex-plugin-cc) plugin, custom status bar, MCP integration, and a self-improvement loop that remembers corrections across sessions.
+Production-ready configuration for [Claude Code](https://claude.com/claude-code) — one-command install of global instructions, multi-language coding rules (Python / TypeScript / Go), 23 curated plugins, custom skills (paper-reading, [humanizer](https://github.com/blader/humanizer), update-config), [Codex adversarial-review](https://github.com/openai/codex-plugin-cc) plugin, custom status bar, MCP integration, and a self-improvement loop that remembers corrections across sessions.
 
 ## Showcase
 
@@ -26,7 +26,7 @@ Production-ready configuration for [Claude Code](https://claude.com/claude-code)
 ├── rules/                 # Multi-language coding standards (common + python/typescript/golang)
 ├── hooks/                 # Statusline with gradient progress bars (context + 5h usage)
 ├── mcp/                   # MCP server config (Lark-MCP)
-├── plugins/               # Plugin installation guide (22 plugins, 7 marketplaces)
+├── plugins/               # Plugin installation guide (23 plugins, 8 marketplaces)
 ├── skills/                # Custom skills (paper-reading, humanizer, update-config)
 ├── docs/                  # Research paper summaries
 ├── images/                # Showcase screenshots
@@ -106,7 +106,7 @@ Running `./install.sh` with no arguments launches an interactive menu where you 
     [ ] Go rules                 gofmt, table-driven tests, gosec
 
   Plugins
-    [*] Plugins (13)             superpowers, code-review, playwright, feature-dev...
+    [*] Plugins (14)             superpowers, code-review, codex, playwright, feature-dev...
     [ ] claude-mem               Cross-session memory (~3k tokens/session)
     [ ] AI Research plugins      fine-tuning, inference, optimization...
     [ ] claude-health            Health check & wellness dashboard
@@ -124,7 +124,7 @@ Use ↑↓ to navigate, Enter to toggle, navigate to Submit and press Enter to i
 
 | Group | Plugins | Default | Context Cost |
 |-------|---------|---------|--------------|
-| Essential (13) | everything-claude-code, superpowers, code-review, context7, commit-commands, document-skills, playwright, feature-dev, code-simplifier, ralph-loop, frontend-design, example-skills, github | On | Low |
+| Essential (14) | everything-claude-code, superpowers, code-review, context7, commit-commands, document-skills, playwright, feature-dev, code-simplifier, ralph-loop, frontend-design, example-skills, github, codex | On | Low |
 | claude-mem (1) | claude-mem | Off | **~3k tokens/session** (observation index + session summary) |
 | AI Research (6) | tokenization, fine-tuning, post-training, inference-serving, distributed-training, optimization | Off | Low |
 | claude-health (1) | health | Off | Low |
@@ -213,7 +213,7 @@ When `settings.json` already exists, the installer performs a smart merge (Bash 
 
 - **env**: Incoming values as defaults, existing values take priority
 - **permissions.allow**: Union of both arrays (deduped)
-- **enabledPlugins**: Merged, existing keys take priority
+- **enabledPlugins**: Union (new plugins added, existing preserved)
 - **hooks.SessionStart**: Deduplicated by `matcher` field
 - **statusLine**: Incoming config takes priority
 
@@ -231,9 +231,9 @@ golang/       → gofmt, table-driven tests, gosec
 
 ### Plugin-First Approach
 
-22 plugins across 7 marketplaces, organized into groups:
+23 plugins across 8 marketplaces, organized into groups:
 
-**Core plugins** (14) — installed by default:
+**Core plugins** (15) — installed by default:
 
 | Plugin | Marketplace | What It Does |
 |--------|-------------|--------------|
@@ -251,6 +251,7 @@ golang/       → gofmt, table-driven tests, gosec
 | **code-simplifier** | claude-plugins-official | Code simplification and refactoring |
 | **ralph-loop** | claude-plugins-official | Session-aware AI assistant REPL |
 | **commit-commands** | claude-plugins-official | Git commit, clean branches, commit-push-PR |
+| [**codex**](https://github.com/openai/codex-plugin-cc) | openai-codex | Adversarial code review, Codex CLI integration, cross-model analysis |
 
 **AI Research plugins** (6) — select in the interactive menu or included with `--all`:
 

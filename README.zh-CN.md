@@ -6,7 +6,7 @@
 
 ![Statusline](assets/statusline.png)
 
-[Claude Code](https://claude.com/claude-code) 的生产级配置——一键安装全局指令、多语言编码规则（Python / TypeScript / Go）、22 个精选插件、自定义技能（paper-reading、[humanizer](https://github.com/blader/humanizer)、update-config）、[Codex adversarial-review](https://github.com/openai/codex-plugin-cc) 插件、自定义状态栏、MCP 集成，以及跨 session 自动记忆纠正的自我改进循环。
+[Claude Code](https://claude.com/claude-code) 的生产级配置——一键安装全局指令、多语言编码规则（Python / TypeScript / Go）、23 个精选插件、自定义技能（paper-reading、[humanizer](https://github.com/blader/humanizer)、update-config）、[Codex adversarial-review](https://github.com/openai/codex-plugin-cc) 插件、自定义状态栏、MCP 集成，以及跨 session 自动记忆纠正的自我改进循环。
 
 ## 展示
 
@@ -26,7 +26,7 @@
 ├── rules/                 # 多语言编码标准（common + python/typescript/golang）
 ├── hooks/                 # 状态栏：渐变进度条（context + 5h 用量）
 ├── mcp/                   # MCP 服务器配置（Lark-MCP）
-├── plugins/               # 插件安装指南（22 个插件，7 个市场）
+├── plugins/               # 插件安装指南（23 个插件，8 个市场）
 ├── skills/                # 自定义技能（paper-reading、humanizer、update-config）
 ├── docs/                  # 论文阅读总结
 ├── images/                # 展示截图
@@ -106,7 +106,7 @@ cd awesome-claude-code-config
     [ ] Go rules                 gofmt, 表驱动测试, gosec
 
   Plugins
-    [*] Plugins (13)             superpowers, code-review, playwright, feature-dev...
+    [*] Plugins (14)             superpowers, code-review, codex, playwright, feature-dev...
     [ ] claude-mem               跨 session 记忆（~3k tokens/session）
     [ ] AI Research plugins      fine-tuning, inference, optimization...
     [ ] claude-health            健康检查 & 状态面板
@@ -213,7 +213,7 @@ cd awesome-claude-code-config
 
 - **env**：新值作为默认值，已有值优先
 - **permissions.allow**：两个数组取并集（去重）
-- **enabledPlugins**：合并，已有键优先
+- **enabledPlugins**：取并集（新插件自动加入，已有配置保留）
 - **hooks.SessionStart**：按 `matcher` 字段去重
 - **statusLine**：新配置优先
 
@@ -231,9 +231,9 @@ golang/       → gofmt、表驱动测试、gosec
 
 ### 插件优先
 
-22 个插件，7 个市场，分为多组：
+23 个插件，8 个市场，分为多组：
 
-**核心插件**（14 个）— 默认安装：
+**核心插件**（15 个）— 默认安装：
 
 | 插件 | 市场 | 功能 |
 |------|------|------|
@@ -251,6 +251,7 @@ golang/       → gofmt、表驱动测试、gosec
 | **code-simplifier** | claude-plugins-official | 代码简化和重构 |
 | **ralph-loop** | claude-plugins-official | 会话感知 AI 助手 REPL |
 | **commit-commands** | claude-plugins-official | Git 提交、清理分支、提交-推送-PR |
+| [**codex**](https://github.com/openai/codex-plugin-cc) | openai-codex | 对抗式代码审查、Codex CLI 集成、跨模型分析 |
 
 **AI 研究插件**（6 个）— 在交互式菜单中选择，或通过 `--all` 安装：
 
