@@ -99,6 +99,7 @@ Running `./install.sh` with no arguments launches an interactive menu where you 
     [0/3] Plugins — Community      claude-mem, claude-health, PUA
     [0/6] Plugins — AI Research    fine-tuning, inference, optimization...
     [0/1] MCP Servers              Lark/Feishu
+    [0/3] DeepXiv — Academic Research  deepxiv-cli, trending-digest, baseline-table...
 
      [ Submit ]
 ```
@@ -119,6 +120,7 @@ The **Review** group lets you choose between [adversarial-review](https://github
 | Plugins — Community (3) | claude-mem, claude-health, PUA | All Off |
 | Plugins — AI Research (6) | tokenization, fine-tuning, post-training, inference-serving, distributed-training, optimization | All Off |
 | MCP Servers (1) | Lark MCP server | Off |
+| DeepXiv — Academic Research (3) | deepxiv-cli, deepxiv-trending-digest, deepxiv-baseline-table | All Off |
 
 ### CLI Flags
 
@@ -282,6 +284,9 @@ CLAUDE.md includes a **Version Changelog** rule: when making version-level chang
 | **[humanizer](https://github.com/blader/humanizer)** | Detect and remove AI writing patterns from text. Based on Wikipedia's "Signs of AI writing" guide, identifies 24 patterns across content, language, style, and communication categories (significance inflation, AI vocabulary, em dash overuse, sycophantic tone, etc.) and rewrites text to sound natural. |
 | **[humanizer-zh](https://github.com/op7418/Humanizer-zh)** | Chinese version of humanizer. Detect and remove AI writing patterns from Chinese text, making it sound more natural and human-written. |
 | **update-config** | In-session update command. Type `/update-config` in Claude Code to check for new versions and re-run the interactive installer — no need to leave the session. |
+| **[deepxiv-cli](https://github.com/DeepXiv/deepxiv_sdk)** | arXiv/PMC paper search & reading via CLI. Hybrid search (BM25 + Vector) across 2M+ papers, section-by-section reading, built-in AI agent for analysis. Pulled from GitHub at install time (always latest). |
+| **[deepxiv-trending-digest](https://github.com/DeepXiv/deepxiv_sdk)** | Generate markdown digests of trending academic papers (last 7 days). Automated workflow: pull trending → brief each → rank → deep-read top picks → structured markdown report. |
+| **[deepxiv-baseline-table](https://github.com/DeepXiv/deepxiv_sdk)** | Build baseline comparison tables from research papers. Systematizes searching, screening, and extracting benchmark data into structured markdown tables. |
 
 Place custom skills in `skills/<name>/SKILL.md`.
 
