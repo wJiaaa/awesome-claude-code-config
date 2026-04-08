@@ -1,6 +1,6 @@
 # Plugins
 
-23 plugins across 8 marketplaces + 3 DeepXiv skills (fetched from GitHub at install time). Context7, GitHub, Playwright migrated from MCP to official plugins.
+23 plugins across 8 marketplaces. Context7, GitHub, Playwright migrated from MCP to official plugins. Additionally, 3 DeepXiv academic research skills can be installed separately (fetched from GitHub at install time).
 
 ## Plugin List
 

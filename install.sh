@@ -315,7 +315,7 @@ REVIEW_CODEX=false
 SELECTED_SKILLS=()
 SELECTED_PLUGINS=()
 SELECTED_DEEPXIV_SKILLS=()
-DEEPXIV_REPO_URL="https://github.com/DeepXiv/deepxiv_sdk"
+DEEPXIV_KNOWN_SKILLS=("deepxiv-cli" "deepxiv-trending-digest" "deepxiv-baseline-table")
 
 # --- Plugin groups ------------------------------------------------------
 
@@ -1276,23 +1276,35 @@ install_skills() {
 }
 
 install_deepxiv() {
+    local repo_url="https://github.com/DeepXiv/deepxiv_sdk"
     info "Installing DeepXiv skills from github.com/DeepXiv/deepxiv_sdk..."
     mkdir -p "$CLAUDE_DIR/skills"
 
-    local deepxiv_tmp
-    deepxiv_tmp="$(mktemp -d)"
+    # Pre-flight: git must be available
+    if ! command -v git &>/dev/null; then
+        error "git is required to install DeepXiv skills but was not found. Please install git first."
+        return 1
+    fi
 
-    # Clone the latest deepxiv_sdk repo (shallow clone for speed)
+    local deepxiv_tmp
+    deepxiv_tmp="$(mktemp -d)" || { error "Failed to create temporary directory"; return 1; }
+
+    # When no specific skills selected (--all mode), use the known bounded list
+    if [[ ${#SELECTED_DEEPXIV_SKILLS[@]} -eq 0 ]]; then
+        SELECTED_DEEPXIV_SKILLS=("${DEEPXIV_KNOWN_SKILLS[@]}")
+    fi
+
+    # Clone the deepxiv_sdk repo (shallow clone for speed)
     local clone_ok=false
     if $DRY_RUN; then
-        info "Would clone $DEEPXIV_REPO_URL (shallow) to temporary directory"
+        info "Would clone $repo_url (shallow) to temporary directory"
         clone_ok=true
     else
-        if retry 3 3 "Clone deepxiv_sdk" git clone --depth 1 "$DEEPXIV_REPO_URL" "$deepxiv_tmp/deepxiv_sdk" 2>/dev/null; then
+        if retry 3 3 "Clone deepxiv_sdk" git clone --depth 1 "$repo_url" "$deepxiv_tmp/deepxiv_sdk"; then
             clone_ok=true
             ok "DeepXiv SDK repo cloned (latest)"
         else
-            error "Failed to clone deepxiv_sdk repo. Check network and try again."
+            error "Failed to clone deepxiv_sdk repo. Check network/proxy and try again."
             rm -rf "$deepxiv_tmp"
             return 1
         fi
@@ -1306,37 +1318,20 @@ install_deepxiv() {
             return 1
         fi
 
-        if [[ ${#SELECTED_DEEPXIV_SKILLS[@]} -gt 0 ]]; then
-            # Install only selected DeepXiv skills
-            for skill in "${SELECTED_DEEPXIV_SKILLS[@]}"; do
-                local skill_src="$src_skills/$skill"
-                if [[ -d "$skill_src" ]]; then
-                    rm -rf "$CLAUDE_DIR/skills/$skill"
-                    cp -r "$skill_src" "$CLAUDE_DIR/skills/$skill"
-                    ok "DeepXiv skill installed: $skill"
-                else
-                    warn "DeepXiv skill not found in repo: $skill"
-                fi
-            done
-        else
-            # --all mode: install all DeepXiv skills
-            for skill_dir in "$src_skills"/*/; do
-                [[ -d "$skill_dir" ]] || continue
-                local skill
-                skill=$(basename "$skill_dir")
+        for skill in "${SELECTED_DEEPXIV_SKILLS[@]}"; do
+            local skill_src="$src_skills/$skill"
+            if [[ -d "$skill_src" ]]; then
                 rm -rf "$CLAUDE_DIR/skills/$skill"
-                cp -r "$skill_dir" "$CLAUDE_DIR/skills/$skill"
+                cp -r "$skill_src" "$CLAUDE_DIR/skills/$skill"
                 ok "DeepXiv skill installed: $skill"
-            done
-        fi
+            else
+                warn "DeepXiv skill not found in repo: $skill"
+            fi
+        done
     elif $DRY_RUN; then
-        if [[ ${#SELECTED_DEEPXIV_SKILLS[@]} -gt 0 ]]; then
-            for skill in "${SELECTED_DEEPXIV_SKILLS[@]}"; do
-                info "Would install DeepXiv skill: $skill -> $CLAUDE_DIR/skills/$skill/"
-            done
-        else
-            info "Would install all DeepXiv skills -> $CLAUDE_DIR/skills/"
-        fi
+        for skill in "${SELECTED_DEEPXIV_SKILLS[@]}"; do
+            info "Would install DeepXiv skill: $skill -> $CLAUDE_DIR/skills/$skill/"
+        done
     fi
 
     # Clean up
@@ -1578,11 +1573,10 @@ uninstall() {
         rm -rf "$CLAUDE_DIR/skills" && ok "Removed skills/"
     fi
 
-    # Remove DeepXiv skills
-    for deepxiv_skill in deepxiv-cli deepxiv-trending-digest deepxiv-baseline-table; do
-        if [[ -d "$CLAUDE_DIR/skills/$deepxiv_skill" ]]; then
-            rm -rf "$CLAUDE_DIR/skills/$deepxiv_skill" && ok "Removed DeepXiv skill: $deepxiv_skill"
-        fi
+    # Remove DeepXiv skills (glob to catch any installed by --all)
+    for deepxiv_skill in "$CLAUDE_DIR"/skills/deepxiv-*/; do
+        [[ -d "$deepxiv_skill" ]] || continue
+        rm -rf "$deepxiv_skill" && ok "Removed DeepXiv skill: $(basename "$deepxiv_skill")"
     done
 
     rm -f "$CLAUDE_DIR/lessons.md" && ok "Removed lessons.md"
@@ -1658,9 +1652,10 @@ main() {
         # Review defaults for --all: adversarial ON, codex OFF
         REVIEW_ADVERSARIAL=true
         if $EXPLICIT_ALL; then
-            # Explicit --all: install everything including MCP and all plugin groups
+            # Explicit --all: install everything including MCP, DeepXiv, and all plugin groups
             INSTALL_MCP=true
             INSTALL_DEEPXIV=true
+            SELECTED_DEEPXIV_SKILLS=("${DEEPXIV_KNOWN_SKILLS[@]}")
             PLUGIN_GROUPS=("all")
             # Add code-review plugin (normally from Review group)
             SELECTED_PLUGINS+=("code-review@claude-plugins-official")

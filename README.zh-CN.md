@@ -86,7 +86,7 @@ cd awesome-claude-code-config
 
 ```
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    Awesome Claude Code Config Installer  2.2.0
+    Awesome Claude Code Config Installer  2.2.1
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   ↑/↓ Navigate   Enter Open   a All  n None  d Defaults  q Quit
@@ -99,7 +99,7 @@ cd awesome-claude-code-config
     [0/3] Plugins — Community      claude-mem, claude-health, PUA
     [0/6] Plugins — AI Research    fine-tuning, inference, optimization...
     [0/1] MCP Servers              Lark/飞书
-    [0/3] DeepXiv — Academic Research  deepxiv-cli, trending-digest, baseline-table...
+    [0/3] DeepXiv — Academic Research  deepxiv-cli, deepxiv-trending-digest, deepxiv-baseline-table...
 
      [ Submit ]
 ```
