@@ -1283,11 +1283,12 @@ install_deepxiv() {
     fi
 
     local deepxiv_tmp
-    deepxiv_tmp="$(mktemp -d)" || { error "Failed to create temporary directory"; return 1; }
+    deepxiv_tmp="$(mktemp -d "${TMPDIR:-/tmp}/deepxiv_sdk.XXXXXX")" || { error "Failed to create temporary directory"; return 1; }
 
-    # When no specific skills selected (--all mode), use the known bounded list
-    if [[ ${#SELECTED_DEEPXIV_SKILLS[@]} -eq 0 ]]; then
-        SELECTED_DEEPXIV_SKILLS=("${DEEPXIV_KNOWN_SKILLS[@]}")
+    # Use local copy; default to known list when nothing selected (--all mode)
+    local -a skills_to_install=("${SELECTED_DEEPXIV_SKILLS[@]}")
+    if [[ ${#skills_to_install[@]} -eq 0 ]]; then
+        skills_to_install=("${DEEPXIV_KNOWN_SKILLS[@]}")
     fi
 
     # Clone the deepxiv_sdk repo (shallow clone for speed)
@@ -1301,6 +1302,7 @@ install_deepxiv() {
             ok "DeepXiv SDK repo cloned (latest)"
         else
             error "Failed to clone deepxiv_sdk repo. Check network/proxy and try again."
+            (( INSTALL_WARNINGS++ )) || true
             rm -rf "$deepxiv_tmp"
             return 1
         fi
@@ -1310,11 +1312,12 @@ install_deepxiv() {
         local src_skills="$deepxiv_tmp/deepxiv_sdk/skills"
         if [[ ! -d "$src_skills" ]]; then
             error "deepxiv_sdk/skills directory not found in cloned repo"
+            (( INSTALL_WARNINGS++ )) || true
             rm -rf "$deepxiv_tmp"
             return 1
         fi
 
-        for skill in "${SELECTED_DEEPXIV_SKILLS[@]}"; do
+        for skill in "${skills_to_install[@]}"; do
             local skill_src="$src_skills/$skill"
             if [[ -d "$skill_src" ]]; then
                 rm -rf "$CLAUDE_DIR/skills/$skill"
@@ -1322,10 +1325,11 @@ install_deepxiv() {
                 ok "DeepXiv skill installed: $skill"
             else
                 warn "DeepXiv skill not found in repo: $skill"
+                (( INSTALL_WARNINGS++ )) || true
             fi
         done
     elif $DRY_RUN; then
-        for skill in "${SELECTED_DEEPXIV_SKILLS[@]}"; do
+        for skill in "${skills_to_install[@]}"; do
             info "Would install DeepXiv skill: $skill -> $CLAUDE_DIR/skills/$skill/"
         done
     fi
