@@ -267,6 +267,11 @@ function Show-InteractiveMenu {
         @{ Label = "MCP Servers"; Hint = ""; Items = @(
             @{ Label = "Lark MCP server"; Desc = "Feishu/Lark integration";           Default = $false; Id = "mcp" }
         )}
+        @{ Label = "DeepXiv - Academic Research"; Hint = "pulls latest skills from github.com/DeepXiv/deepxiv_sdk"; Items = @(
+            @{ Label = "deepxiv-cli";      Desc = "arXiv/PMC paper search & reading CLI skill"; Default = $false; Id = "deepxiv-cli" }
+            @{ Label = "deepxiv-trending-digest"; Desc = "Trending paper digest generation"; Default = $false; Id = "deepxiv-trending-digest" }
+            @{ Label = "deepxiv-baseline-table"; Desc = "Baseline comparison table from papers"; Default = $false; Id = "deepxiv-baseline-table" }
+        )}
     )
 
     # Flatten groups into parallel arrays
@@ -494,6 +499,8 @@ function Show-InteractiveMenu {
         SelectedPlugins    = @()
         PluginGroups       = @()
         Mcp                = $false
+        DeepXiv            = $false
+        DeepXivSkills      = @()
         ReviewAdversarial  = $false
         ReviewCodex        = $false
         ReviewCodeReview   = $false
@@ -519,6 +526,9 @@ function Show-InteractiveMenu {
             "skill-humanizer"      { $result.Skills = $true; $result.SelectedSkills += "humanizer" }
             "skill-humanizer-zh"   { $result.Skills = $true; $result.SelectedSkills += "humanizer-zh" }
             "skill-update-config"  { $result.Skills = $true; $result.SelectedSkills += "update-config" }
+            "deepxiv-cli"          { $result.DeepXiv = $true; $result.DeepXivSkills += "deepxiv-cli" }
+            "deepxiv-trending-digest" { $result.DeepXiv = $true; $result.DeepXivSkills += "deepxiv-trending-digest" }
+            "deepxiv-baseline-table"  { $result.DeepXiv = $true; $result.DeepXivSkills += "deepxiv-baseline-table" }
             "mcp"                { $result.Mcp = $true }
             "plug-*"             {
                 $result.Plugins = $true
@@ -784,6 +794,81 @@ function Install-Skills {
     }
 }
 
+function Install-DeepXiv {
+    param(
+        [string[]]$SelectedDeepXivSkills = @()
+    )
+    Write-Info "Installing DeepXiv skills from github.com/DeepXiv/deepxiv_sdk..."
+    $skillsDir = Join-Path $CLAUDE_DIR "skills"
+    New-Item -ItemType Directory -Path $skillsDir -Force | Out-Null
+
+    $deepxivTmp = Join-Path $env:TEMP "deepxiv_sdk_$(Get-Random)"
+
+    $cloneOk = $false
+    if ($DryRun) {
+        Write-Info "Would clone https://github.com/DeepXiv/deepxiv_sdk (shallow) to temporary directory"
+        $cloneOk = $true
+    } else {
+        try {
+            $cloneResult = Invoke-Retry -MaxAttempts 3 -DelaySeconds 3 -Description "Clone deepxiv_sdk" -Action {
+                git clone --depth 1 "https://github.com/DeepXiv/deepxiv_sdk" $deepxivTmp 2>$null
+                if ($LASTEXITCODE -ne 0) { throw "git clone failed" }
+            }
+            if ($cloneResult) {
+                $cloneOk = $true
+                Write-Ok "DeepXiv SDK repo cloned (latest)"
+            }
+        } catch {
+            Write-Err "Failed to clone deepxiv_sdk repo. Check network and try again."
+            if (Test-Path $deepxivTmp) { Remove-Item $deepxivTmp -Recurse -Force }
+            return
+        }
+    }
+
+    if ($cloneOk -and -not $DryRun) {
+        $srcSkills = Join-Path $deepxivTmp "skills"
+        if (-not (Test-Path $srcSkills)) {
+            Write-Err "deepxiv_sdk/skills directory not found in cloned repo"
+            Remove-Item $deepxivTmp -Recurse -Force
+            return
+        }
+
+        if ($SelectedDeepXivSkills.Count -gt 0) {
+            foreach ($skill in $SelectedDeepXivSkills) {
+                $src = Join-Path $srcSkills $skill
+                $dst = Join-Path $skillsDir $skill
+                if (Test-Path $src) {
+                    if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
+                    Copy-Item $src $dst -Recurse -Force
+                    Write-Ok "DeepXiv skill installed: $skill"
+                } else {
+                    Write-Warn "DeepXiv skill not found in repo: $skill"
+                }
+            }
+        } else {
+            # --All mode: install all DeepXiv skills
+            Get-ChildItem $srcSkills -Directory | ForEach-Object {
+                $skill = $_.Name
+                $dst = Join-Path $skillsDir $skill
+                if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
+                Copy-Item $_.FullName $dst -Recurse -Force
+                Write-Ok "DeepXiv skill installed: $skill"
+            }
+        }
+    } elseif ($DryRun) {
+        if ($SelectedDeepXivSkills.Count -gt 0) {
+            foreach ($skill in $SelectedDeepXivSkills) {
+                Write-Info "Would install DeepXiv skill: $skill -> $skillsDir\$skill"
+            }
+        } else {
+            Write-Info "Would install all DeepXiv skills -> $skillsDir\"
+        }
+    }
+
+    # Clean up
+    if (Test-Path $deepxivTmp) { Remove-Item $deepxivTmp -Recurse -Force }
+}
+
 function Install-Lessons {
     Write-Info "Installing lessons.md template..."
     $target = Join-Path $CLAUDE_DIR "lessons.md"
@@ -1018,6 +1103,7 @@ function Invoke-Uninstall {
     Write-Host "  - $CLAUDE_DIR\settings.json (backed up first)"
     Write-Host "  - $CLAUDE_DIR\rules\"
     Write-Host "  - $CLAUDE_DIR\skills\ (installer-managed only)"
+    Write-Host "  - $CLAUDE_DIR\skills\deepxiv-* (DeepXiv skills)"
     Write-Host "  - $CLAUDE_DIR\lessons.md"
     Write-Host "  - $CLAUDE_DIR\hooks\ (installer-managed only)"
     Write-Host "  - Installed plugins (requires claude CLI)"
@@ -1060,6 +1146,12 @@ function Invoke-Uninstall {
     } else {
         $p = Join-Path $CLAUDE_DIR "skills"
         if (Test-Path $p) { Remove-Item $p -Recurse -Force; Write-Ok "Removed skills/" }
+    }
+
+    # Remove DeepXiv skills
+    foreach ($deepxivSkill in @("deepxiv-cli", "deepxiv-trending-digest", "deepxiv-baseline-table")) {
+        $dp = Join-Path $CLAUDE_DIR "skills\$deepxivSkill"
+        if (Test-Path $dp) { Remove-Item $dp -Recurse -Force; Write-Ok "Removed DeepXiv skill: $deepxivSkill" }
     }
 
     $p = Join-Path $CLAUDE_DIR "lessons.md"
@@ -1159,6 +1251,8 @@ function Main {
     $doHooks = $false
     $doPlugins = $false
     $doMcp = $false
+    $doDeepXiv = $false
+    $deepXivSkills = @()
     $ruleLangs = @()
     $ruleLangsExplicit = $false
     $pluginGroups = @()
@@ -1177,6 +1271,7 @@ function Main {
         $doHooks = $true
         $doPlugins = $true
         $doMcp = $true
+        $doDeepXiv = $true
         $pluginGroups = @("all")
         $reviewAdversarial = $true
         $reviewCodex = $false
@@ -1200,6 +1295,8 @@ function Main {
             $doHooks = $menuResult.Hooks
             $doPlugins = $menuResult.Plugins
             $doMcp = $menuResult.Mcp
+            $doDeepXiv = $menuResult.DeepXiv
+            $deepXivSkills = $menuResult.DeepXivSkills
             $ruleLangs = $menuResult.RuleLangs
             $ruleLangsExplicit = $menuResult.RuleLangsExplicit
             $pluginGroups = $menuResult.PluginGroups
@@ -1233,7 +1330,7 @@ function Main {
     # Check if anything was selected
     if (-not $doClaudeMd -and -not $doSettings -and -not $doRules -and
         -not $doSkills -and -not $doLessons -and -not $doHooks -and
-        -not $doPlugins -and -not $doMcp) {
+        -not $doPlugins -and -not $doMcp -and -not $doDeepXiv) {
         Write-Warn "Nothing selected to install."
         return
     }
@@ -1268,6 +1365,7 @@ function Main {
     if ($doHooks) { Install-Hooks }
     if ($doMcp) { Install-Mcp }
     if ($doPlugins) { Install-Plugins -Groups $pluginGroups -SelectedPluginsList $selectedPlugins }
+    if ($doDeepXiv) { Install-DeepXiv -SelectedDeepXivSkills $deepXivSkills }
 
     if (-not $DryRun) {
         if ($InstallWarnings -eq 0) {
