@@ -829,6 +829,7 @@ function Install-DeepXiv {
             Write-Ok "DeepXiv SDK repo cloned (latest)"
         } else {
             Write-Err "Failed to clone deepxiv_sdk repo. Check network/proxy and try again."
+            $script:InstallWarnings++
             if (Test-Path $deepxivTmp) { Remove-Item $deepxivTmp -Recurse -Force }
             return
         }
@@ -838,6 +839,7 @@ function Install-DeepXiv {
         $srcSkills = Join-Path $deepxivTmp "skills"
         if (-not (Test-Path $srcSkills)) {
             Write-Err "deepxiv_sdk/skills directory not found in cloned repo"
+            $script:InstallWarnings++
             Remove-Item $deepxivTmp -Recurse -Force
             return
         }
@@ -851,6 +853,7 @@ function Install-DeepXiv {
                 Write-Ok "DeepXiv skill installed: $skill"
             } else {
                 Write-Warn "DeepXiv skill not found in repo: $skill"
+                $script:InstallWarnings++
             }
         }
     } elseif ($DryRun) {
