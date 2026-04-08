@@ -798,28 +798,39 @@ function Install-DeepXiv {
     param(
         [string[]]$SelectedDeepXivSkills = @()
     )
+    $repoUrl = "https://github.com/DeepXiv/deepxiv_sdk"
+    $knownSkills = @("deepxiv-cli", "deepxiv-trending-digest", "deepxiv-baseline-table")
+
     Write-Info "Installing DeepXiv skills from github.com/DeepXiv/deepxiv_sdk..."
     $skillsDir = Join-Path $CLAUDE_DIR "skills"
     New-Item -ItemType Directory -Path $skillsDir -Force | Out-Null
 
-    $deepxivTmp = Join-Path $env:TEMP "deepxiv_sdk_$(Get-Random)"
+    # Pre-flight: git must be available
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        Write-Err "git is required to install DeepXiv skills but was not found. Please install git first."
+        return
+    }
+
+    # When no specific skills selected (--All mode), use the known bounded list
+    if ($SelectedDeepXivSkills.Count -eq 0) {
+        $SelectedDeepXivSkills = $knownSkills
+    }
+
+    $deepxivTmp = Join-Path ([System.IO.Path]::GetTempPath()) ("deepxiv_sdk_" + [System.IO.Path]::GetRandomFileName())
 
     $cloneOk = $false
     if ($DryRun) {
-        Write-Info "Would clone https://github.com/DeepXiv/deepxiv_sdk (shallow) to temporary directory"
+        Write-Info "Would clone $repoUrl (shallow) to temporary directory"
         $cloneOk = $true
     } else {
-        try {
-            $cloneResult = Invoke-Retry -MaxAttempts 3 -DelaySeconds 3 -Description "Clone deepxiv_sdk" -Action {
-                git clone --depth 1 "https://github.com/DeepXiv/deepxiv_sdk" $deepxivTmp 2>$null
-                if ($LASTEXITCODE -ne 0) { throw "git clone failed" }
-            }
-            if ($cloneResult) {
-                $cloneOk = $true
-                Write-Ok "DeepXiv SDK repo cloned (latest)"
-            }
-        } catch {
-            Write-Err "Failed to clone deepxiv_sdk repo. Check network and try again."
+        $cloneOk = Invoke-Retry -MaxAttempts 3 -DelaySeconds 3 -Description "Clone deepxiv_sdk" -Action {
+            git clone --depth 1 $repoUrl $deepxivTmp
+            if ($LASTEXITCODE -ne 0) { throw "git clone failed" }
+        }
+        if ($cloneOk) {
+            Write-Ok "DeepXiv SDK repo cloned (latest)"
+        } else {
+            Write-Err "Failed to clone deepxiv_sdk repo. Check network/proxy and try again."
             if (Test-Path $deepxivTmp) { Remove-Item $deepxivTmp -Recurse -Force }
             return
         }
@@ -833,35 +844,20 @@ function Install-DeepXiv {
             return
         }
 
-        if ($SelectedDeepXivSkills.Count -gt 0) {
-            foreach ($skill in $SelectedDeepXivSkills) {
-                $src = Join-Path $srcSkills $skill
-                $dst = Join-Path $skillsDir $skill
-                if (Test-Path $src) {
-                    if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
-                    Copy-Item $src $dst -Recurse -Force
-                    Write-Ok "DeepXiv skill installed: $skill"
-                } else {
-                    Write-Warn "DeepXiv skill not found in repo: $skill"
-                }
-            }
-        } else {
-            # --All mode: install all DeepXiv skills
-            Get-ChildItem $srcSkills -Directory | ForEach-Object {
-                $skill = $_.Name
-                $dst = Join-Path $skillsDir $skill
+        foreach ($skill in $SelectedDeepXivSkills) {
+            $src = Join-Path $srcSkills $skill
+            $dst = Join-Path $skillsDir $skill
+            if (Test-Path $src) {
                 if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
-                Copy-Item $_.FullName $dst -Recurse -Force
+                Copy-Item $src $dst -Recurse -Force
                 Write-Ok "DeepXiv skill installed: $skill"
+            } else {
+                Write-Warn "DeepXiv skill not found in repo: $skill"
             }
         }
     } elseif ($DryRun) {
-        if ($SelectedDeepXivSkills.Count -gt 0) {
-            foreach ($skill in $SelectedDeepXivSkills) {
-                Write-Info "Would install DeepXiv skill: $skill -> $skillsDir\$skill"
-            }
-        } else {
-            Write-Info "Would install all DeepXiv skills -> $skillsDir\"
+        foreach ($skill in $SelectedDeepXivSkills) {
+            Write-Info "Would install DeepXiv skill: $skill -> $skillsDir\$skill"
         }
     }
 
@@ -1148,10 +1144,10 @@ function Invoke-Uninstall {
         if (Test-Path $p) { Remove-Item $p -Recurse -Force; Write-Ok "Removed skills/" }
     }
 
-    # Remove DeepXiv skills
-    foreach ($deepxivSkill in @("deepxiv-cli", "deepxiv-trending-digest", "deepxiv-baseline-table")) {
-        $dp = Join-Path $CLAUDE_DIR "skills\$deepxivSkill"
-        if (Test-Path $dp) { Remove-Item $dp -Recurse -Force; Write-Ok "Removed DeepXiv skill: $deepxivSkill" }
+    # Remove DeepXiv skills (glob to catch any installed by --All)
+    $deepxivPattern = Join-Path $CLAUDE_DIR "skills\deepxiv-*"
+    Get-ChildItem $deepxivPattern -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+        Remove-Item $_.FullName -Recurse -Force; Write-Ok "Removed DeepXiv skill: $($_.Name)"
     }
 
     $p = Join-Path $CLAUDE_DIR "lessons.md"
@@ -1272,6 +1268,7 @@ function Main {
         $doPlugins = $true
         $doMcp = $true
         $doDeepXiv = $true
+        $deepXivSkills = @("deepxiv-cli", "deepxiv-trending-digest", "deepxiv-baseline-table")
         $pluginGroups = @("all")
         $reviewAdversarial = $true
         $reviewCodex = $false
