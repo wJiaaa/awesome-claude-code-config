@@ -183,9 +183,28 @@ if ! $cache_is_fresh; then
 fi
 
 # --- Terminal width ---
-COLUMNS=${COLUMNS:-$(tput cols 2>/dev/null)}
-COLUMNS=${COLUMNS:-120}
-[[ "$COLUMNS" =~ ^[0-9]+$ ]] || COLUMNS=120
+# Claude Code runs statusline in a pipe (no tty on stdin), so $COLUMNS
+# and `tput cols` are unreliable. Probe the real terminal via /dev/pts/*.
+_get_term_width() {
+    # 1) $COLUMNS if set and positive
+    local c="${COLUMNS:-0}"
+    [[ "$c" =~ ^[0-9]+$ ]] && [ "$c" -gt 0 ] && { echo "$c"; return; }
+
+    # 2) Probe /dev/pts/* for real terminal dimensions (most reliable in pipe context)
+    for _pty in /dev/pts/[0-9]*; do
+        [ -r "$_pty" ] || continue
+        c=$(stty size < "$_pty" 2>/dev/null | awk '{print $2}')
+        [[ "$c" =~ ^[0-9]+$ ]] && [ "$c" -gt 0 ] && { echo "$c"; return; }
+    done
+
+    # 3) Try tput cols as last resort before fallback
+    c=$(tput cols 2>/dev/null)
+    [[ "$c" =~ ^[0-9]+$ ]] && [ "$c" -gt 0 ] && { echo "$c"; return; }
+
+    # 4) Fallback
+    echo 120
+}
+COLUMNS=$(_get_term_width)
 
 # visible_len: compute display width of a string with ANSI escapes
 # Strips escape codes, then uses wc -L for accurate multi-byte/emoji width
