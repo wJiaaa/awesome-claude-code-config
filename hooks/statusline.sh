@@ -270,6 +270,7 @@ fmt_resets() {
 
 # --- Assemble segments ---
 segments=()
+sep_visible_w=3  # " │ " is 3 visible characters
 
 # Segment 1: Model
 segments+=("${ICON_MODEL} ${C_MODEL}${model}${C_R}")
@@ -296,17 +297,47 @@ if [ -n "$git_branch" ]; then
     segments+=("${C_GIT}${ICON_GIT} ${git_branch}${C_R}")
 fi
 
-# Segment 5: Context bar
+# Pre-compute width of segments so far (for adaptive bar sizing)
+_pre_w=0
+for _s in "${segments[@]}"; do
+    [ "$_pre_w" -gt 0 ] && _pre_w=$(( _pre_w + sep_visible_w ))
+    _pre_w=$(( _pre_w + $(visible_len "$_s") ))
+done
+
+# Segment 5: Context bar (adaptive width)
 ctx_pct_int=$(printf "%.0f" "$ctx_pct" 2>/dev/null || echo "$ctx_pct")
-ctx_bar=$(build_bar "$ctx_pct_int")
 ctx_fmt=$(fmt_ctx "$ctx_size")
+# Estimate overhead: "context " (8) + " " (1) + pct "XX%" (3-4) + " " (1) + ctx_fmt (~4) ≈ 18
+ctx_label_overhead=18
+ctx_bar_w=$BAR_W
+ctx_remaining=$(( COLUMNS - _pre_w - sep_visible_w - ctx_label_overhead ))
+if [ "$_pre_w" -gt 0 ] && [ "$ctx_remaining" -lt "$BAR_W" ] && [ "$ctx_remaining" -ge 8 ]; then
+    ctx_bar_w=$ctx_remaining
+fi
+ctx_bar=$(build_bar "$ctx_pct_int" "$ctx_bar_w")
 segments+=("${C_LABEL}context${C_R} ${ctx_bar} ${C_LABEL}${ctx_fmt}${C_R}")
 
-# Segment 6: 5-hour usage bar
+# Segment 6: 5-hour usage bar (adaptive width)
 if [ -n "$usage_5h" ]; then
     usage_pct=$(printf "%.0f" "$usage_5h" 2>/dev/null || echo "$usage_5h")
-    usage_bar=$(build_bar "$usage_pct")
     resets_fmt=$(fmt_resets "$usage_resets")
+    # Overhead: "5h " (3) + " " (1) + pct "XX%" (3-4) + " " (1) + resets (~5) ≈ 14
+    usage_label_overhead=14
+    usage_bar_w=$BAR_W
+
+    # Re-compute cumulative width including segment 5
+    _pre_w=0
+    for _s in "${segments[@]}"; do
+        [ "$_pre_w" -gt 0 ] && _pre_w=$(( _pre_w + sep_visible_w ))
+        _pre_w=$(( _pre_w + $(visible_len "$_s") ))
+    done
+
+    usage_remaining=$(( COLUMNS - _pre_w - sep_visible_w - usage_label_overhead ))
+    if [ "$_pre_w" -gt 0 ] && [ "$usage_remaining" -lt "$BAR_W" ] && [ "$usage_remaining" -ge 8 ]; then
+        usage_bar_w=$usage_remaining
+    fi
+
+    usage_bar=$(build_bar "$usage_pct" "$usage_bar_w")
     usage_seg="${C_LABEL}5h${C_R} ${usage_bar}"
     [ -n "$resets_fmt" ] && usage_seg+=" ${C_LABEL}${resets_fmt}${C_R}"
     segments+=("$usage_seg")
@@ -314,7 +345,6 @@ fi
 
 # --- Wrap algorithm ---
 sep_str="${C_SEP} \xe2\x94\x82 ${C_R}"
-sep_visible_w=3  # " │ " is 3 visible characters
 
 out=""
 line_w=0
