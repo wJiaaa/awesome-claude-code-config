@@ -190,11 +190,19 @@ _get_term_width() {
     local c="${COLUMNS:-0}"
     [[ "$c" =~ ^[0-9]+$ ]] && [ "$c" -gt 0 ] && { echo "$c"; return; }
 
-    # 2) Probe /dev/pts/* for real terminal dimensions (most reliable in pipe context)
-    for _pty in /dev/pts/[0-9]*; do
-        [ -r "$_pty" ] || continue
-        c=$(stty size < "$_pty" 2>/dev/null | awk '{print $2}')
-        [[ "$c" =~ ^[0-9]+$ ]] && [ "$c" -gt 0 ] && { echo "$c"; return; }
+    # 2) Walk ancestor process fds to find the real terminal (Linux)
+    local _pid=$$
+    while [ "$_pid" -gt 1 ] 2>/dev/null; do
+        for _fd in /proc/"$_pid"/fd/*; do
+            [ -e "$_fd" ] || continue
+            local _tgt
+            _tgt=$(readlink "$_fd" 2>/dev/null) || continue
+            case "$_tgt" in /dev/pts/*|/dev/tty*)
+                c=$(stty size < "$_tgt" 2>/dev/null | awk '{print $2}')
+                [[ "$c" =~ ^[0-9]+$ ]] && [ "$c" -gt 0 ] && { echo "$c"; return; }
+            esac
+        done
+        _pid=$(awk '{print $4}' /proc/"$_pid"/stat 2>/dev/null) || break
     done
 
     # 3) Try tput cols as last resort before fallback
@@ -209,10 +217,15 @@ COLUMNS=$(_get_term_width)
 # visible_len: compute display width of a string with ANSI escapes
 # Strips escape codes, then uses wc -L for accurate multi-byte/emoji width
 visible_len() {
-    local stripped
+    local stripped w
     stripped=$(printf "%b" "$1" | sed $'s/\x1b\[[0-9;]*[a-zA-Z]//g')
-    # wc -L gives max display width (handles CJK/emoji double-width)
-    printf "%b" "$stripped" | wc -L 2>/dev/null | tr -d ' '
+    # wc -L gives display width (handles CJK/emoji double-width) — GNU only
+    w=$(printf "%b" "$stripped" | wc -L 2>/dev/null | tr -d ' ')
+    # Fallback for macOS/BSD where wc -L is unavailable
+    if [ -z "$w" ] || [ "$w" -eq 0 ] 2>/dev/null; then
+        w=${#stripped}
+    fi
+    echo "$w"
 }
 
 # --- Colors ---
@@ -316,11 +329,15 @@ if [ -n "$git_branch" ]; then
     segments+=("${C_GIT}${ICON_GIT} ${git_branch}${C_R}")
 fi
 
-# Pre-compute width of segments so far (for adaptive bar sizing)
+# Pre-compute widths of all segments (cached for reuse)
+_seg_widths=()
 _pre_w=0
 for _s in "${segments[@]}"; do
+    local_w=$(visible_len "$_s")
+    local_w=${local_w:-0}
+    _seg_widths+=("$local_w")
     [ "$_pre_w" -gt 0 ] && _pre_w=$(( _pre_w + sep_visible_w ))
-    _pre_w=$(( _pre_w + $(visible_len "$_s") ))
+    _pre_w=$(( _pre_w + local_w ))
 done
 
 # Segment 5: Context bar (adaptive width)
@@ -330,11 +347,14 @@ ctx_fmt=$(fmt_ctx "$ctx_size")
 ctx_label_overhead=18
 ctx_bar_w=$BAR_W
 ctx_remaining=$(( COLUMNS - _pre_w - sep_visible_w - ctx_label_overhead ))
-if [ "$_pre_w" -gt 0 ] && [ "$ctx_remaining" -lt "$BAR_W" ] && [ "$ctx_remaining" -ge 8 ]; then
-    ctx_bar_w=$ctx_remaining
+if [ "$ctx_remaining" -lt "$BAR_W" ]; then
+    ctx_bar_w=$(( ctx_remaining >= 8 ? ctx_remaining : BAR_W ))
 fi
 ctx_bar=$(build_bar "$ctx_pct_int" "$ctx_bar_w")
-segments+=("${C_LABEL}context${C_R} ${ctx_bar} ${C_LABEL}${ctx_fmt}${C_R}")
+_ctx_seg="${C_LABEL}context${C_R} ${ctx_bar} ${C_LABEL}${ctx_fmt}${C_R}"
+segments+=("$_ctx_seg")
+_ctx_w=$(visible_len "$_ctx_seg"); _ctx_w=${_ctx_w:-0}
+_seg_widths+=("$_ctx_w")
 
 # Segment 6: 5-hour usage bar (adaptive width)
 if [ -n "$usage_5h" ]; then
@@ -344,22 +364,24 @@ if [ -n "$usage_5h" ]; then
     usage_label_overhead=14
     usage_bar_w=$BAR_W
 
-    # Re-compute cumulative width including segment 5
+    # Re-compute cumulative width including segment 5 (use cached widths + new segment)
     _pre_w=0
-    for _s in "${segments[@]}"; do
+    for _w in "${_seg_widths[@]}"; do
         [ "$_pre_w" -gt 0 ] && _pre_w=$(( _pre_w + sep_visible_w ))
-        _pre_w=$(( _pre_w + $(visible_len "$_s") ))
+        _pre_w=$(( _pre_w + _w ))
     done
 
     usage_remaining=$(( COLUMNS - _pre_w - sep_visible_w - usage_label_overhead ))
-    if [ "$_pre_w" -gt 0 ] && [ "$usage_remaining" -lt "$BAR_W" ] && [ "$usage_remaining" -ge 8 ]; then
-        usage_bar_w=$usage_remaining
+    if [ "$usage_remaining" -lt "$BAR_W" ]; then
+        usage_bar_w=$(( usage_remaining >= 8 ? usage_remaining : BAR_W ))
     fi
 
     usage_bar=$(build_bar "$usage_pct" "$usage_bar_w")
     usage_seg="${C_LABEL}5h${C_R} ${usage_bar}"
     [ -n "$resets_fmt" ] && usage_seg+=" ${C_LABEL}${resets_fmt}${C_R}"
     segments+=("$usage_seg")
+    _usage_w=$(visible_len "$usage_seg"); _usage_w=${_usage_w:-0}
+    _seg_widths+=("$_usage_w")
 fi
 
 # --- Wrap algorithm ---
@@ -368,9 +390,10 @@ sep_str="${C_SEP} \xe2\x94\x82 ${C_R}"
 out=""
 line_w=0
 
+_seg_idx=0
 for seg in "${segments[@]}"; do
-    seg_w=$(visible_len "$seg")
-    seg_w=${seg_w:-0}
+    seg_w=${_seg_widths[$_seg_idx]:-0}
+    _seg_idx=$(( _seg_idx + 1 ))
     needed=$seg_w
     [ "$line_w" -gt 0 ] && needed=$(( seg_w + sep_visible_w ))
 
