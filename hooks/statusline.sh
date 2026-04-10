@@ -183,13 +183,15 @@ if ! $cache_is_fresh; then
 fi
 
 # --- Terminal width ---
-COLUMNS=${COLUMNS:-$(tput cols 2>/dev/null || echo 120)}
+COLUMNS=${COLUMNS:-$(tput cols 2>/dev/null)}
+COLUMNS=${COLUMNS:-120}
+[[ "$COLUMNS" =~ ^[0-9]+$ ]] || COLUMNS=120
 
 # visible_len: compute display width of a string with ANSI escapes
 # Strips escape codes, then uses wc -L for accurate multi-byte/emoji width
 visible_len() {
     local stripped
-    stripped=$(printf "%b" "$1" | sed $'s/\x1b\[[0-9;]*m//g')
+    stripped=$(printf "%b" "$1" | sed $'s/\x1b\[[0-9;]*[a-zA-Z]//g')
     # wc -L gives max display width (handles CJK/emoji double-width)
     printf "%b" "$stripped" | wc -L 2>/dev/null | tr -d ' '
 }
@@ -319,6 +321,7 @@ line_w=0
 
 for seg in "${segments[@]}"; do
     seg_w=$(visible_len "$seg")
+    seg_w=${seg_w:-0}
     needed=$seg_w
     [ "$line_w" -gt 0 ] && needed=$(( seg_w + sep_visible_w ))
 
