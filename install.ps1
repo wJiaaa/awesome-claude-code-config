@@ -10,12 +10,14 @@
     .\install.ps1 -Uninstall       # Uninstall everything
     .\install.ps1 -DryRun          # Preview changes
     # Remote install:
-    & ([scriptblock]::Create((irm https://raw.githubusercontent.com/Mizoreww/awesome-claude-code-config/main/install.ps1)))
+    irm https://raw.githubusercontent.com/Mizoreww/awesome-claude-code-config/main/install.ps1 | iex
 #>
 
-# When piped via `irm URL | iex`, PowerShell cannot bind param() correctly —
-# directory names from subcommands (e.g. "adversarial-review") leak as
-# positional arguments. Wrapping in & { ... } isolates the parameter scope.
+# Wrap in & { param() ... } to isolate parameter scope.
+# In `irm | iex` mode, $args in the outer scope may contain garbage tokens
+# (e.g. "adversarial-review") leaked from script parsing. We filter $args
+# to only pass recognized switch-style arguments (starting with "-").
+$_safeArgs = @( $args | Where-Object { $_ -is [string] -and $_ -match '^-' } )
 & {
 param(
     [switch]$All,
@@ -1390,4 +1392,4 @@ function Main {
 }
 
 Main
-} @args
+} @_safeArgs
